@@ -21,6 +21,9 @@ import time
 from typing import Protocol
 
 import httpx
+from pydantic import SecretStr
+
+from workflows.observability.redaction import redact_snippet
 
 GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code"
 GITHUB_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token"
@@ -45,10 +48,13 @@ class StaticTokenProvider:
     """Returns a fixed Copilot token. For tests and pre-provisioned tokens."""
 
     def __init__(self, token: str):
-        self._token = token
+        self._token = SecretStr(token)
+
+    def __repr__(self) -> str:  # never expose token material
+        return "StaticTokenProvider(token=SecretStr('**********'))"
 
     def get_token(self) -> str:
-        return self._token
+        return self._token.get_secret_value()
 
 
 class GitHubCopilotTokenProvider:
@@ -70,13 +76,19 @@ class GitHubCopilotTokenProvider:
         editor_version: str = "vscode/1.95.0",
         integration_id: str = "vscode-chat",
     ):
-        self._oauth_token = oauth_token or os.environ.get("GH_COPILOT_OAUTH_TOKEN")
+        raw_oauth = oauth_token or os.environ.get("GH_COPILOT_OAUTH_TOKEN")
+        # Secrets are wrapped so they never render in reprs or traceback locals.
+        self._oauth_token: SecretStr | None = SecretStr(raw_oauth) if raw_oauth else None
         self._client_id = client_id
         self._client = client or httpx.Client(timeout=30.0)
         self._editor_version = editor_version
         self._integration_id = integration_id
-        self._copilot_token: str | None = None
+        self._copilot_token: SecretStr | None = None
         self._expires_at: float = 0.0
+
+    def __repr__(self) -> str:  # never expose token material
+        state = "authenticated" if self._oauth_token else "unauthenticated"
+        return f"GitHubCopilotTokenProvider(state={state!r})"
 
     # -- OAuth device flow (interactive, SSO-aware) ------------------------
 
@@ -105,13 +117,14 @@ class GitHubCopilotTokenProvider:
             )
             data = resp.json()
             if "access_token" in data:
-                self._oauth_token = data["access_token"]
-                return self._oauth_token
+                self._oauth_token = SecretStr(data["access_token"])
+                return self._oauth_token.get_secret_value()
             error = data.get("error")
             if error in ("authorization_pending", "slow_down"):
                 time.sleep(interval + (5 if error == "slow_down" else 0))
                 continue
-            raise CopilotAuthError(f"Device flow failed: {error or data}")
+            # Only the error *code* is surfaced; never the raw response body.
+            raise CopilotAuthError(f"Device flow failed: {error or 'unknown_error'}")
         raise CopilotAuthError("Device flow timed out awaiting authorization")
 
     def login_device_flow(self, prompt=print) -> str:  # pragma: no cover - interactive
@@ -131,25 +144,27 @@ class GitHubCopilotTokenProvider:
         resp = self._client.get(
             COPILOT_TOKEN_URL,
             headers={
-                "Authorization": f"token {self._oauth_token}",
+                "Authorization": f"token {self._oauth_token.get_secret_value()}",
                 "Accept": "application/json",
                 "Editor-Version": self._editor_version,
                 "Copilot-Integration-Id": self._integration_id,
             },
         )
         if resp.status_code != 200:
+            # Upstream body is redacted + truncated before entering the error.
             raise CopilotAuthError(
-                f"Copilot token exchange failed ({resp.status_code}): {resp.text}"
+                f"Copilot token exchange failed ({resp.status_code}): "
+                f"{redact_snippet(resp.text)}"
             )
         data = resp.json()
-        self._copilot_token = data["token"]
+        self._copilot_token = SecretStr(data["token"])
         self._expires_at = float(data.get("expires_at", time.time() + 1800))
 
     def get_token(self) -> str:
         if self._copilot_token is None or time.time() >= self._expires_at - self._REFRESH_SKEW:
             self._exchange()
         assert self._copilot_token is not None
-        return self._copilot_token
+        return self._copilot_token.get_secret_value()
 
 
 class CopilotChatFactory:

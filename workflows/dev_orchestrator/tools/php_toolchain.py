@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Protocol
 
 from workflows.dev_orchestrator.schemas import ToolResult
+from workflows.observability.redaction import redact, redact_snippet
 
 
 class PhpToolchain(Protocol):
@@ -42,9 +43,13 @@ class SubprocessPhpToolchain:
                 args, cwd=cwd, capture_output=True, text=True, timeout=600
             )
         except (subprocess.SubprocessError, OSError) as exc:  # pragma: no cover
-            return ToolResult(tool=tool, ok=False, output=str(exc))
+            return ToolResult(tool=tool, ok=False, output=redact(str(exc)))
+        # PHP tool output can echo repo config (DB creds, .env values) and paths;
+        # redact + cap it before it enters the persisted verify_report.
         output = (proc.stdout or "") + (proc.stderr or "")
-        return ToolResult(tool=tool, ok=proc.returncode == 0, output=output)
+        return ToolResult(
+            tool=tool, ok=proc.returncode == 0, output=redact_snippet(output, limit=8000)
+        )
 
     def _bin(self, workspace_path: str, name: str) -> str:
         return str(Path(workspace_path) / self.vendor_bin / name)

@@ -8,12 +8,15 @@ from app.settings import Settings, get_settings
 from workflows.graph.builder import build_workflow_graph
 from workflows.graph.deps import WorkflowDeps
 from workflows.llm.factory import build_llm
+from workflows.observability.redaction import install_log_redaction
 from workflows.persistence.db import init_engine, session_scope
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings: Settings = app.state.settings
+    # Scrub secrets/PII from any log line before it reaches a handler.
+    install_log_redaction()
     init_engine(settings.db_url)
 
     llm = build_llm(

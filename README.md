@@ -27,6 +27,9 @@ failures and retries, then distills lessons back into memory. Every side effect
 is a `Protocol` with a Fake, so the whole graph runs in tests without git, PHP,
 Postgres or an LLM. See [`docs/dev_orchestrator.md`](docs/dev_orchestrator.md).
 
+Secrets (tokens) and PII are centrally redacted from logs, errors and captured
+tool output — see [`docs/logging_security.md`](docs/logging_security.md).
+
 ## Quickstart
 
 Prerequisites: Python 3.11+, Docker, and a **GitHub Copilot** subscription
@@ -41,9 +44,10 @@ pip install -e ".[test]"
 
 alembic upgrade head
 
-# Authenticate Copilot once (SSO device flow) and export the OAuth token, or set
-# GH_COPILOT_OAUTH_TOKEN in .env to a pre-authorized token:
-python -c "from workflows.llm.copilot import GitHubCopilotTokenProvider as T; print(T().login_device_flow())"
+# Authenticate Copilot once (SSO device flow). Store the returned token in a
+# secret manager / .env as GH_COPILOT_OAUTH_TOKEN — do NOT echo it to a shell
+# that logs history. Example writing it straight into .env without printing:
+python -c "from workflows.llm.copilot import GitHubCopilotTokenProvider as T; open('.env','a').write(f'\nGH_COPILOT_OAUTH_TOKEN={T().login_device_flow()}\n')"
 
 uvicorn app.main:app --reload
 ```
