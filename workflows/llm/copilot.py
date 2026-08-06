@@ -163,7 +163,7 @@ class CopilotChatFactory:
         self,
         *,
         token_provider: TokenProvider,
-        model: str = "gpt-4o",
+        model: str = "chatgpt-5.6-terra",
         base_url: str = "https://api.githubcopilot.com",
         editor_version: str = "vscode/1.95.0",
         integration_id: str = "vscode-chat",

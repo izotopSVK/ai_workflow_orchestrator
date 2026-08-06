@@ -61,7 +61,7 @@ class GitHubCopilotLLM:
         self,
         *,
         token_provider: TokenProvider,
-        model: str = "gpt-4o",
+        model: str = "chatgpt-5.6-terra",
         role_models: dict[str, str] | None = None,
         base_url: str = "https://api.githubcopilot.com",
         editor_version: str = "vscode/1.95.0",

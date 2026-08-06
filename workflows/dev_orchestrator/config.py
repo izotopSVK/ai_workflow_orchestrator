@@ -61,7 +61,8 @@ class DevOrchestratorConfig:
     # --- Enterprise LLM: GitHub Copilot (SSO-compatible) ----------------
     # All orchestration LLM calls route through Copilot's OpenAI-compatible API.
     llm_provider: str = "github_copilot"
-    copilot_model: str = "gpt-4o"
+    # Default agent model. Variants: chatgpt-5.6-sol / -terra / -luna.
+    copilot_model: str = "chatgpt-5.6-terra"
     copilot_base_url: str = "https://api.githubcopilot.com"
     copilot_editor_version: str = "vscode/1.95.0"
     copilot_integration_id: str = "vscode-chat"
@@ -73,12 +74,12 @@ class DevOrchestratorConfig:
     # Per-agent model overrides. Each orchestrator agent (analyze, plan,
     # implement, review_solid, reflect) can run on its own Copilot model; any
     # role not listed here falls back to ``copilot_model``. E.g.
-    # {"implement": "claude-3.5-sonnet", "reflect": "o3-mini"}.
+    # {"implement": "chatgpt-5.6-sol", "review_solid": "chatgpt-5.6-luna"}.
     agent_models: dict[str, str] = field(default_factory=dict)
 
 
 def parse_agent_models(raw: str | None) -> dict[str, str]:
-    """Parse ``"implement=claude-3.5-sonnet,reflect=o3-mini"`` into a dict.
+    """Parse ``"implement=chatgpt-5.6-sol,reflect=chatgpt-5.6-luna"`` into a dict.
 
     Convenience for reading per-agent models from a single env var
     (``COPILOT_AGENT_MODELS``). Blank/None yields an empty mapping.

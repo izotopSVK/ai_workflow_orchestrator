@@ -135,17 +135,17 @@ app with the enterprise's own via `config.copilot_oauth_client_id`.
 ### Per-agent models
 
 Each orchestrator agent is an LLM role and can run on its own Copilot model.
-`config.copilot_model` is the default (e.g. `gpt-4o`); `config.agent_models`
-overrides it per role — any role not listed falls back to the default:
+`config.copilot_model` is the default (`chatgpt-5.6-terra`; variants
+`chatgpt-5.6-sol` / `-terra` / `-luna`); `config.agent_models` overrides it per
+role — any role not listed falls back to the default:
 
 ```python
 config = DevOrchestratorConfig(
-    copilot_model="gpt-4o",
+    copilot_model="chatgpt-5.6-terra",      # default for all agents
     agent_models={
-        "implement": "claude-3.5-sonnet",   # strongest for code
-        "review_solid": "o3-mini",          # reasoning for review
-        "reflect": "gpt-4o-mini",           # cheap for short lessons
-        # analyze, plan -> fall back to gpt-4o
+        "implement": "chatgpt-5.6-sol",     # strongest for code
+        "review_solid": "chatgpt-5.6-luna", # for review
+        # analyze, plan, reflect -> fall back to chatgpt-5.6-terra
     },
 )
 ```
@@ -153,7 +153,7 @@ config = DevOrchestratorConfig(
 Roles: `analyze`, `plan`, `implement`, `review_solid`, `reflect` (see
 `copilot.AGENT_ROLES`). From an env var, use
 `parse_agent_models(os.environ["COPILOT_AGENT_MODELS"])` with the format
-`implement=claude-3.5-sonnet,reflect=o3-mini`. All agents share one
+`implement=chatgpt-5.6-sol,review_solid=chatgpt-5.6-luna`. All agents share one
 `CopilotChatFactory` per distinct model and one SSO token provider, so mixing
 models costs one login, not one per model.
 

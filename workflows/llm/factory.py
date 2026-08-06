@@ -75,7 +75,7 @@ class CopilotWorkflowLLM:
 def build_llm(
     provider: str,
     *,
-    copilot_model: str = "gpt-4o",
+    copilot_model: str = "chatgpt-5.6-terra",
     copilot_base_url: str = "https://api.githubcopilot.com",
     token_provider=None,
 ) -> WorkflowLLM:

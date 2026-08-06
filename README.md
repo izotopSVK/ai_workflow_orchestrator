@@ -83,7 +83,7 @@ All settings via environment variables (see `.env.example`):
 | `DB_URL` | `postgresql+psycopg://...` | SQLAlchemy URL for app tables |
 | `CHECKPOINT_DB_URL` | same DB, libpq URL | LangGraph PostgresSaver |
 | `LLM_PROVIDER` | `github_copilot` | `github_copilot` or `fake` |
-| `COPILOT_MODEL` | `gpt-4o` | Copilot model (`gpt-4o`, `o3-mini`, `claude-3.5-sonnet`, …) |
+| `COPILOT_MODEL` | `chatgpt-5.6-terra` | Default agent model (variants `chatgpt-5.6-sol` / `-terra` / `-luna`) |
 | `COPILOT_BASE_URL` | `https://api.githubcopilot.com` | Copilot OpenAI-compatible API |
 | `GH_COPILOT_OAUTH_TOKEN` | _(unset)_ | Pre-authorized GitHub OAuth token (SSO); else use device flow |
 | `ARTIFACT_DIR` | `./artifacts` | Local artifact store path |

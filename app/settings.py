@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # Enterprise LLM: GitHub Copilot (SSO-compatible). The Copilot token is
     # derived from a GitHub OAuth token (GH_COPILOT_OAUTH_TOKEN or device flow).
     llm_provider: str = "github_copilot"
-    copilot_model: str = "gpt-4o"
+    copilot_model: str = "chatgpt-5.6-terra"
     copilot_base_url: str = "https://api.githubcopilot.com"
 
     artifact_dir: str = "./artifacts"
