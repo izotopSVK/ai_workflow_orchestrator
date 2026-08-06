@@ -130,9 +130,32 @@ both graphs use it without depending on each other.
 Headless / CI: set `GH_COPILOT_OAUTH_TOKEN` to a pre-authorized OAuth token, or
 inject a `StaticTokenProvider`. Interactive: run
 `GitHubCopilotTokenProvider(...).login_device_flow()` once. Override the OAuth
-app with the enterprise's own via `config.copilot_oauth_client_id`. Model is
-`config.copilot_model` (default `gpt-4o`; Copilot also serves `o`-series,
-`claude-3.5-sonnet`, `gemini-*`).
+app with the enterprise's own via `config.copilot_oauth_client_id`.
+
+### Per-agent models
+
+Each orchestrator agent is an LLM role and can run on its own Copilot model.
+`config.copilot_model` is the default (e.g. `gpt-4o`); `config.agent_models`
+overrides it per role — any role not listed falls back to the default:
+
+```python
+config = DevOrchestratorConfig(
+    copilot_model="gpt-4o",
+    agent_models={
+        "implement": "claude-3.5-sonnet",   # strongest for code
+        "review_solid": "o3-mini",          # reasoning for review
+        "reflect": "gpt-4o-mini",           # cheap for short lessons
+        # analyze, plan -> fall back to gpt-4o
+    },
+)
+```
+
+Roles: `analyze`, `plan`, `implement`, `review_solid`, `reflect` (see
+`copilot.AGENT_ROLES`). From an env var, use
+`parse_agent_models(os.environ["COPILOT_AGENT_MODELS"])` with the format
+`implement=claude-3.5-sonnet,reflect=o3-mini`. All agents share one
+`CopilotChatFactory` per distinct model and one SSO token provider, so mixing
+models costs one login, not one per model.
 
 ## Running
 

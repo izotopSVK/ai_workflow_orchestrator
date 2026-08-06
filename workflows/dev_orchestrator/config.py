@@ -69,3 +69,29 @@ class DevOrchestratorConfig:
     # enterprise's own OAuth app for tighter org control. The OAuth token itself
     # is read from GH_COPILOT_OAUTH_TOKEN (or acquired via device flow).
     copilot_oauth_client_id: str = "Iv1.b507a08c87ecfe98"
+
+    # Per-agent model overrides. Each orchestrator agent (analyze, plan,
+    # implement, review_solid, reflect) can run on its own Copilot model; any
+    # role not listed here falls back to ``copilot_model``. E.g.
+    # {"implement": "claude-3.5-sonnet", "reflect": "o3-mini"}.
+    agent_models: dict[str, str] = field(default_factory=dict)
+
+
+def parse_agent_models(raw: str | None) -> dict[str, str]:
+    """Parse ``"implement=claude-3.5-sonnet,reflect=o3-mini"`` into a dict.
+
+    Convenience for reading per-agent models from a single env var
+    (``COPILOT_AGENT_MODELS``). Blank/None yields an empty mapping.
+    """
+    if not raw:
+        return {}
+    models: dict[str, str] = {}
+    for pair in raw.split(","):
+        pair = pair.strip()
+        if not pair:
+            continue
+        role, _, model = pair.partition("=")
+        role, model = role.strip(), model.strip()
+        if role and model:
+            models[role] = model
+    return models

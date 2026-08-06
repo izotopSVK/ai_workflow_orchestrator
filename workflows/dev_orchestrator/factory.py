@@ -38,6 +38,7 @@ def build_copilot_llm(
     return GitHubCopilotLLM(
         token_provider=provider,
         model=config.copilot_model,
+        role_models=config.agent_models,
         base_url=config.copilot_base_url,
         editor_version=config.copilot_editor_version,
         integration_id=config.copilot_integration_id,
