@@ -14,7 +14,7 @@ class DevOrchestratorDeps:
     """Runtime dependencies injected into graph nodes via closures.
 
     Every field is an interface (Protocol), so tests inject Fakes and prod
-    injects git/PHP/pgvector/Ollama-backed implementations without touching the
+    injects git/PHP/pgvector/Copilot-backed implementations without touching the
     graph or nodes.
     """
 

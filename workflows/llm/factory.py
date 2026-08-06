@@ -40,13 +40,23 @@ class FakeWorkflowLLM:
         )
 
 
-class OllamaWorkflowLLM:
-    """Real LLM backed by a local Ollama server via langchain-ollama."""
+class CopilotWorkflowLLM:
+    """Real LLM backed by GitHub Copilot (enterprise, SSO-compatible).
 
-    def __init__(self, *, model: str, base_url: str):
-        from langchain_ollama import ChatOllama
+    Routes planning through Copilot's OpenAI-compatible API. The Copilot token is
+    supplied by a :class:`TokenProvider`; by default a
+    :class:`GitHubCopilotTokenProvider` handles the SSO device flow and token
+    refresh.
+    """
 
-        self._chat = ChatOllama(model=model, base_url=base_url, temperature=0.0)
+    def __init__(self, *, model: str, base_url: str, token_provider=None):
+        from workflows.llm.copilot import CopilotChatFactory, GitHubCopilotTokenProvider
+
+        self._factory = CopilotChatFactory(
+            token_provider=token_provider or GitHubCopilotTokenProvider(),
+            model=model,
+            base_url=base_url,
+        )
 
     def generate_plan(self, goal: str) -> PlanOutput:
         prompt = (
@@ -55,17 +65,27 @@ class OllamaWorkflowLLM:
             "and the expected output.\n\n"
             f"Goal:\n{goal}"
         )
-        structured = self._chat.with_structured_output(PlanOutput)
+        structured = self._factory.chat().with_structured_output(PlanOutput)
         result = structured.invoke(prompt)
         if isinstance(result, PlanOutput):
             return result
         return PlanOutput.model_validate(result)
 
 
-def build_llm(provider: str, *, ollama_model: str, ollama_base_url: str) -> WorkflowLLM:
+def build_llm(
+    provider: str,
+    *,
+    copilot_model: str = "gpt-4o",
+    copilot_base_url: str = "https://api.githubcopilot.com",
+    token_provider=None,
+) -> WorkflowLLM:
     provider = provider.lower()
     if provider == "fake":
         return FakeWorkflowLLM()
-    if provider == "ollama":
-        return OllamaWorkflowLLM(model=ollama_model, base_url=ollama_base_url)
+    if provider in ("github_copilot", "copilot"):
+        return CopilotWorkflowLLM(
+            model=copilot_model,
+            base_url=copilot_base_url,
+            token_provider=token_provider,
+        )
     raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}")

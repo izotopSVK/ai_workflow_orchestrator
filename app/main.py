@@ -18,8 +18,8 @@ async def lifespan(app: FastAPI):
 
     llm = build_llm(
         settings.llm_provider,
-        ollama_model=settings.ollama_model,
-        ollama_base_url=settings.ollama_base_url,
+        copilot_model=settings.copilot_model,
+        copilot_base_url=settings.copilot_base_url,
     )
     deps = WorkflowDeps(llm=llm, session_factory=session_scope)
 

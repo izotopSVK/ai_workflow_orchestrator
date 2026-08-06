@@ -57,3 +57,15 @@ class DevOrchestratorConfig:
 
     # How many lessons/episodes to pull from memory into planning.
     retrieval_k: int = 5
+
+    # --- Enterprise LLM: GitHub Copilot (SSO-compatible) ----------------
+    # All orchestration LLM calls route through Copilot's OpenAI-compatible API.
+    llm_provider: str = "github_copilot"
+    copilot_model: str = "gpt-4o"
+    copilot_base_url: str = "https://api.githubcopilot.com"
+    copilot_editor_version: str = "vscode/1.95.0"
+    copilot_integration_id: str = "vscode-chat"
+    # OAuth app client id used for the SSO device flow. Override with the
+    # enterprise's own OAuth app for tighter org control. The OAuth token itself
+    # is read from GH_COPILOT_OAUTH_TOKEN (or acquired via device flow).
+    copilot_oauth_client_id: str = "Iv1.b507a08c87ecfe98"

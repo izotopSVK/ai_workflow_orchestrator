@@ -87,33 +87,7 @@ class FakeDevLLM:
         )
 
 
-class OllamaDevLLM:  # pragma: no cover - requires a running Ollama server
-    """Real DevLLM backed by a local model via langchain-ollama.
-
-    Structured output per role; prompts are intentionally omitted from the
-    scaffold and filled in when the target repo is wired up.
-    """
-
-    def __init__(self, *, model: str, base_url: str):
-        from langchain_ollama import ChatOllama
-
-        self._chat = ChatOllama(model=model, base_url=base_url, temperature=0.0)
-
-    def _structured(self, schema, prompt):
-        result = self._chat.with_structured_output(schema).invoke(prompt)
-        return result if isinstance(result, schema) else schema.model_validate(result)
-
-    def analyze(self, *, goal, lessons, file_hints) -> AnalysisOutput:
-        raise NotImplementedError("Fill in analyze prompt when target repo is configured")
-
-    def plan(self, *, goal, analysis, lessons) -> PlanOutput:
-        raise NotImplementedError
-
-    def implement(self, *, goal, plan, reflections, lessons) -> ImplementOutput:
-        raise NotImplementedError
-
-    def review_solid(self, *, diff) -> SolidReview:
-        raise NotImplementedError
-
-    def reflect(self, *, goal, verify_report) -> Lesson:
-        raise NotImplementedError
+# The real, enterprise DevLLM implementation lives in
+# ``workflows.dev_orchestrator.copilot.GitHubCopilotLLM`` (GitHub Copilot,
+# SSO-compatible). It is imported there to keep langchain-openai optional for
+# the Fake path used in tests.

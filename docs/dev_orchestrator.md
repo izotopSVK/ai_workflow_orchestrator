@@ -103,9 +103,36 @@ injects real implementations without touching the graph:
 | `WorkspaceManager` | `FakeWorkspaceManager` | `GitWorktreeManager` |
 | `PhpToolchain` | `FakePhpToolchain` | `SubprocessPhpToolchain` |
 | `MemoryStore` | `InMemoryMemoryStore` | `PgVectorMemoryStore` *(stub)* |
-| `DevLLM` | `FakeDevLLM` | `OllamaDevLLM` *(prompts TBD)* |
+| `DevLLM` | `FakeDevLLM` | `GitHubCopilotLLM` (enterprise, SSO) |
 
 Build them with `factory.build_fake_deps()` / `factory.build_real_deps(config)`.
+
+## Enterprise LLM: GitHub Copilot (SSO-compatible)
+
+Every LLM role — analyze, plan, implement, review_solid, reflect — routes through
+**GitHub Copilot's OpenAI-compatible API** (`https://api.githubcopilot.com`). The
+MVP graph's planner uses it too, so the whole orchestration runs on Copilot.
+
+Authentication is **SSO-compatible**:
+
+1. The user authenticates once via GitHub's **OAuth device flow**. When the
+   Copilot subscription belongs to an org/enterprise enforcing SAML SSO, the
+   device-flow authorization enforces that SSO — the OAuth token is
+   SSO-authorized for the org.
+2. `GitHubCopilotTokenProvider` exchanges that OAuth token for a short-lived
+   Copilot token (~30 min) at `/copilot_internal/v2/token` and refreshes it
+   before expiry.
+
+Shared auth/chat plumbing lives in `workflows/llm/copilot.py`
+(`GitHubCopilotTokenProvider`, `StaticTokenProvider`, `CopilotChatFactory`), so
+both graphs use it without depending on each other.
+
+Headless / CI: set `GH_COPILOT_OAUTH_TOKEN` to a pre-authorized OAuth token, or
+inject a `StaticTokenProvider`. Interactive: run
+`GitHubCopilotTokenProvider(...).login_device_flow()` once. Override the OAuth
+app with the enterprise's own via `config.copilot_oauth_client_id`. Model is
+`config.copilot_model` (default `gpt-4o`; Copilot also serves `o`-series,
+`claude-3.5-sonnet`, `gemini-*`).
 
 ## Running
 
@@ -128,13 +155,14 @@ Tests: `pytest tests/test_dev_orchestrator.py`.
 
 ## Scaffold status / next steps
 
-Done (this commit): full graph, state, DI-ready deps, Fake implementations,
-Reflexion loop, self-learning memory (in-memory), 8 tests.
+Done: full graph, state, DI-ready deps, Fake implementations, Reflexion loop,
+self-learning memory (in-memory), GitHub Copilot LLM with SSO auth, 19 tests.
 
 To productionize:
 
 1. Set `DevOrchestratorConfig.target_repo_path` to the legacy Yii 1.1 checkout.
-2. Fill in `OllamaDevLLM` prompts per role.
+2. Provision Copilot auth: set `GH_COPILOT_OAUTH_TOKEN` or run the device flow
+   once (see above). Optionally point `copilot_oauth_client_id` at the org's app.
 3. Implement `PgVectorMemoryStore` (embedding column + `<->` retrieval).
 4. Wire real Rector/PHPStan/PHPUnit config into the target repo's `vendor/bin`.
 5. Persist workspaces/approvals via the existing `workflows.persistence` repos.

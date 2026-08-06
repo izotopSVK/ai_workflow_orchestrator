@@ -9,7 +9,7 @@ This repo implements the MVP slice: a workflow graph that plans, verifies, pause
 ```
 FastAPI ─▶ WorkflowService ─▶ LangGraph (plan → verify → human_review → finalize)
                                    │
-                                   ├─▶ ChatOllama (local LLM, qwen3.6 by default)
+                                   ├─▶ GitHub Copilot (enterprise LLM, SSO)
                                    ├─▶ PostgresSaver (graph checkpoints)
                                    └─▶ SQLAlchemy ORM (workflows, approvals, events, artifacts, ...)
 ```
@@ -29,7 +29,8 @@ Postgres or an LLM. See [`docs/dev_orchestrator.md`](docs/dev_orchestrator.md).
 
 ## Quickstart
 
-Prerequisites: Python 3.11+, Docker, [Ollama](https://ollama.com) running locally.
+Prerequisites: Python 3.11+, Docker, and a **GitHub Copilot** subscription
+(enterprise/org, SSO-authorized).
 
 ```bash
 docker compose up -d
@@ -40,7 +41,9 @@ pip install -e ".[test]"
 
 alembic upgrade head
 
-ollama pull qwen3.6
+# Authenticate Copilot once (SSO device flow) and export the OAuth token, or set
+# GH_COPILOT_OAUTH_TOKEN in .env to a pre-authorized token:
+python -c "from workflows.llm.copilot import GitHubCopilotTokenProvider as T; print(T().login_device_flow())"
 
 uvicorn app.main:app --reload
 ```
@@ -69,7 +72,7 @@ curl localhost:8000/workflows/<workflow_id>
 pytest -q
 ```
 
-The smoke test uses `FakeListChatModel` and an in-memory checkpointer with SQLite, so no Ollama or Postgres is required for `pytest`.
+Tests use Fake LLM/tool implementations and an in-memory checkpointer with SQLite, so no Copilot, PHP, git or Postgres is required for `pytest`.
 
 ## Configuration
 
@@ -79,9 +82,10 @@ All settings via environment variables (see `.env.example`):
 |-----|---------|---------|
 | `DB_URL` | `postgresql+psycopg://...` | SQLAlchemy URL for app tables |
 | `CHECKPOINT_DB_URL` | same DB, libpq URL | LangGraph PostgresSaver |
-| `LLM_PROVIDER` | `ollama` | `ollama` or `fake` |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server |
-| `OLLAMA_MODEL` | `qwen3.6` | Ollama model tag |
+| `LLM_PROVIDER` | `github_copilot` | `github_copilot` or `fake` |
+| `COPILOT_MODEL` | `gpt-4o` | Copilot model (`gpt-4o`, `o3-mini`, `claude-3.5-sonnet`, …) |
+| `COPILOT_BASE_URL` | `https://api.githubcopilot.com` | Copilot OpenAI-compatible API |
+| `GH_COPILOT_OAUTH_TOKEN` | _(unset)_ | Pre-authorized GitHub OAuth token (SSO); else use device flow |
 | `ARTIFACT_DIR` | `./artifacts` | Local artifact store path |
 
 ## Out of Scope (this commit)
