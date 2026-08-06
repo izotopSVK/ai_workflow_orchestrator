@@ -104,3 +104,42 @@ def test_configure_llm_cache_toggles_global():
 def test_configure_llm_cache_rejects_unknown():
     with pytest.raises(ValueError):
         configure_llm_cache("bogus")
+
+
+# --- MVP planner LLM --------------------------------------------------------
+
+def test_mvp_planner_applies_compressor():
+    from workflows.llm.factory import CopilotWorkflowLLM
+
+    rec = RecordingCompressor()
+    llm = CopilotWorkflowLLM(
+        model="chatgpt-5.6-terra",
+        base_url="https://api.githubcopilot.com",
+        token_provider=StaticTokenProvider("t"),
+        compressor=rec,
+    )
+    messages = llm.prepare_messages("Draft a status report")
+    assert rec.calls == ["chatgpt-5.6-terra"]
+    assert all(content.startswith("[c]") for _, content in messages)
+
+
+def test_build_llm_wires_compressor_and_proxy():
+    from workflows.llm.factory import CopilotWorkflowLLM, build_llm
+
+    llm = build_llm(
+        "github_copilot",
+        compressor="headroom",
+        headroom_proxy_url="http://localhost:8877",
+        token_provider=StaticTokenProvider("t"),
+    )
+    assert isinstance(llm, CopilotWorkflowLLM)
+    assert isinstance(llm._compressor, HeadroomCompressor)
+    assert llm._factory._base_url == "http://localhost:8877"
+    configure_llm_cache("none")
+
+
+def test_build_llm_fake_ignores_compression():
+    from workflows.llm.factory import FakeWorkflowLLM, build_llm
+
+    llm = build_llm("fake", compressor="headroom")
+    assert isinstance(llm, FakeWorkflowLLM)

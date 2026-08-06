@@ -24,6 +24,13 @@ feed the `reflect` and `implement` agents, and (2) retrieved RAG lessons in
 `analyze`/`plan`/`implement` prompts. Both flow through the Copilot LLM, so
 compressing the messages there is the highest-value hook.
 
+Both LLM paths are covered: the **dev orchestrator** agents
+(`GitHubCopilotLLM`) and the **MVP workflow graph** planner
+(`CopilotWorkflowLLM`). Each exposes `prepare_messages(...)`, which runs the
+compressor before `invoke`. The MVP path is configured via `app.settings`
+(`COMPRESSOR` / `HEADROOM_PROXY_URL` / `LLM_CACHE` env vars → `build_llm`); the
+dev orchestrator via `DevOrchestratorConfig`.
+
 ## Two ways to connect
 
 ### 1. Proxy mode (zero code)

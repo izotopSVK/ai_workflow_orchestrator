@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     copilot_model: str = "chatgpt-5.6-terra"
     copilot_base_url: str = "https://api.githubcopilot.com"
 
+    # Context compression (Headroom) + response cache for the planner LLM.
+    compressor: str = "none"  # none | headroom
+    headroom_proxy_url: str | None = None  # proxy mode; overrides copilot_base_url
+    llm_cache: str = "none"  # none | memory | sqlite
+
     artifact_dir: str = "./artifacts"
 
 

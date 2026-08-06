@@ -23,6 +23,9 @@ async def lifespan(app: FastAPI):
         settings.llm_provider,
         copilot_model=settings.copilot_model,
         copilot_base_url=settings.copilot_base_url,
+        compressor=settings.compressor,
+        headroom_proxy_url=settings.headroom_proxy_url,
+        llm_cache=settings.llm_cache,
     )
     deps = WorkflowDeps(llm=llm, session_factory=session_scope)
 
