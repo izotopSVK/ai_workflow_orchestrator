@@ -29,6 +29,15 @@ test = [
     "pytest-asyncio>=0.23",
     "httpx>=0.27",
 ]
+# Context compression via Headroom (headroom-ai). SDK mode only; proxy mode needs
+# no Python dependency. See docs/headroom_integration.md.
+compression = [
+    "headroom-ai",
+]
+# Persistent LLM response cache (llm_cache="sqlite").
+cache = [
+    "langchain-community>=0.3.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -30,6 +30,10 @@ Postgres or an LLM. See [`docs/dev_orchestrator.md`](docs/dev_orchestrator.md).
 Secrets (tokens) and PII are centrally redacted from logs, errors and captured
 tool output — see [`docs/logging_security.md`](docs/logging_security.md).
 
+Optional context compression via [Headroom](https://github.com/headroomlabs-ai/headroom)
+(+ RTK) cuts Copilot token usage and aligns the prompt cache — see
+[`docs/headroom_integration.md`](docs/headroom_integration.md).
+
 ## Quickstart
 
 Prerequisites: Python 3.11+, Docker, and a **GitHub Copilot** subscription

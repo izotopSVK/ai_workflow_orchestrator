@@ -8,6 +8,8 @@ from workflows.dev_orchestrator.copilot import (
 )
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.llm import DevLLM, FakeDevLLM
+from workflows.llm.cache import configure_llm_cache
+from workflows.llm.compression import build_compressor
 from workflows.dev_orchestrator.tools.memory import InMemoryMemoryStore
 from workflows.dev_orchestrator.tools.php_toolchain import (
     FakePhpToolchain,
@@ -35,13 +37,19 @@ def build_copilot_llm(
         editor_version=config.copilot_editor_version,
         integration_id=config.copilot_integration_id,
     )
+    # Response cache to dedupe identical Copilot calls (process-global).
+    configure_llm_cache(config.llm_cache)
+    # Proxy mode: route through the Headroom proxy if configured.
+    base_url = config.headroom_proxy_url or config.copilot_base_url
+    compressor = build_compressor(config.compressor, model=config.copilot_model)
     return GitHubCopilotLLM(
         token_provider=provider,
         model=config.copilot_model,
         role_models=config.agent_models,
-        base_url=config.copilot_base_url,
+        base_url=base_url,
         editor_version=config.copilot_editor_version,
         integration_id=config.copilot_integration_id,
+        compressor=compressor,
     )
 
 

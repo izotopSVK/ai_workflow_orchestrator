@@ -71,6 +71,16 @@ class DevOrchestratorConfig:
     # is read from GH_COPILOT_OAUTH_TOKEN (or acquired via device flow).
     copilot_oauth_client_id: str = "Iv1.b507a08c87ecfe98"
 
+    # --- Context compression / cache (Headroom + RTK) -------------------
+    # "none" (default) or "headroom". Compresses tool output / RAG / history
+    # before it reaches Copilot to cut tokens. See docs/headroom_integration.md.
+    compressor: str = "none"
+    # If set, Copilot calls go through this Headroom proxy URL (zero-code mode:
+    # compression + CacheAligner happen in the proxy). Overrides copilot_base_url.
+    headroom_proxy_url: str | None = None
+    # LLM response cache to dedupe identical Copilot calls: "none" | "memory" | "sqlite".
+    llm_cache: str = "none"
+
     # Per-agent model overrides. Each orchestrator agent (analyze, plan,
     # implement, review_solid, reflect) can run on its own Copilot model; any
     # role not listed here falls back to ``copilot_model``. E.g.

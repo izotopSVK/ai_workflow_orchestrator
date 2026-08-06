@@ -8,6 +8,7 @@ through GitHub Copilot's OpenAI-compatible API.
 
 from __future__ import annotations
 
+from workflows.llm.compression import ContextCompressor, NoOpCompressor
 from workflows.llm.copilot import (  # re-exported for convenience
     CopilotAuthError,
     CopilotChatFactory,
@@ -67,6 +68,7 @@ class GitHubCopilotLLM:
         editor_version: str = "vscode/1.95.0",
         integration_id: str = "vscode-chat",
         temperature: float = 0.0,
+        compressor: ContextCompressor | None = None,
     ):
         self._token_provider = token_provider
         self._default_model = model
@@ -75,6 +77,7 @@ class GitHubCopilotLLM:
         self._editor_version = editor_version
         self._integration_id = integration_id
         self._temperature = temperature
+        self._compressor = compressor or NoOpCompressor()
         self._factories: dict[str, CopilotChatFactory] = {}
 
     def model_for(self, role: str) -> str:
@@ -96,8 +99,13 @@ class GitHubCopilotLLM:
             self._factories[model] = factory
         return factory
 
-    def _structured(self, schema, human: str, role: str):
+    def prepare_messages(self, human: str, role: str) -> list[tuple[str, str]]:
+        """Build and compress the messages for a role (seam for testing)."""
         messages = [("system", _SYSTEM), ("human", human)]
+        return self._compressor.compress_messages(messages, model=self.model_for(role))
+
+    def _structured(self, schema, human: str, role: str):
+        messages = self.prepare_messages(human, role)
         result = self._factory_for(role).chat().with_structured_output(schema).invoke(messages)
         return result if isinstance(result, schema) else schema.model_validate(result)
 
