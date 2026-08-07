@@ -181,7 +181,8 @@ Tests: `pytest tests/test_dev_orchestrator.py`.
 ## Scaffold status / next steps
 
 Done: full graph, state, DI-ready deps, Fake implementations, Reflexion loop,
-self-learning memory (in-memory), GitHub Copilot LLM with SSO auth, 19 tests.
+self-learning memory (in-memory), GitHub Copilot LLM with SSO auth, per-agent
+models, AGENTS.md/skills, Headroom compression + LLM cache. Whole suite: 60 tests.
 
 To productionize:
 
