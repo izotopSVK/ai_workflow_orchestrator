@@ -10,6 +10,21 @@
   and the target repo's `vendor/bin` tools (Rector, PHPStan, PHP-CS-Fixer,
   PHPUnit). Not required for the scaffold or tests.
 
+## Fast path: `just`
+
+If you have [`just`](https://just.systems) installed, the whole first setup is
+one command — skip the manual steps below:
+
+```bash
+just init      # venv + deps + .env + Postgres (Docker) + migrations
+just login     # GitHub Copilot SSO device flow (or set LLM_PROVIDER=fake in .env)
+just run       # start the API
+```
+
+Run bare `just` to see all recipes (`test`, `db-up`, `db-down`, `install-extras`,
+`clean`, `fresh`, …). The manual steps below are exactly what these recipes
+automate.
+
 ## 1. Clone and enter the repo
 
 ```bash

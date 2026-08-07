@@ -35,17 +35,22 @@ START → bootstrap → load_context → retrieve → analyze → plan → imple
 
 ## Quickstart
 
+With [`just`](https://just.systems) the whole first setup is one command:
+
+```bash
+just init          # venv + deps + .env + Postgres + migrations
+just login         # GitHub Copilot SSO (or set LLM_PROVIDER=fake in .env)
+just run           # start the API at http://localhost:8000
+```
+
+`just` (bare) lists every recipe (`test`, `db-up`, `clean`, `fresh`, …). Prefer
+manual steps? They're equivalent:
+
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-pytest -q                       # 60 tests, no external services needed
-```
-
-Run the MVP API (needs Docker + Copilot, or `LLM_PROVIDER=fake`):
-
-```bash
-docker compose up -d
 cp .env.example .env
+docker compose up -d
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
