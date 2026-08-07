@@ -22,6 +22,7 @@ of the list and work down.
 - **[Auth & security](auth_and_security.md)** — Copilot SSO auth, secret handling.
 - **[Logging security](logging_security.md)** — secret/PII redaction, threat model.
 - **[AGENTS.md & skills](agents_and_skills.md)** — repo instructions and skills.
+- **[MCP client](mcp.md)** — use tools from external MCP servers.
 - **[Headroom + RTK](headroom_integration.md)** — context compression & prompt cache.
 
 ## At a glance
@@ -35,4 +36,5 @@ of the list and work down.
 | Enterprise LLM & SSO | [auth_and_security.md](auth_and_security.md) |
 | Token/PII safety | [logging_security.md](logging_security.md) |
 | AGENTS.md / skills | [agents_and_skills.md](agents_and_skills.md) |
+| MCP client | [mcp.md](mcp.md) |
 | Token compression | [headroom_integration.md](headroom_integration.md) |

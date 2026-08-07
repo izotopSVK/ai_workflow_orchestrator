@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from workflows.dev_orchestrator.config import DevOrchestratorConfig
 from workflows.dev_orchestrator.instructions import InstructionsProvider
 from workflows.dev_orchestrator.llm import DevLLM
+from workflows.dev_orchestrator.mcp_tools import MCPToolProvider
 from workflows.dev_orchestrator.skills import SkillLibrary
 from workflows.dev_orchestrator.tools.memory import MemoryStore
 from workflows.dev_orchestrator.tools.php_toolchain import PhpToolchain
@@ -29,3 +30,5 @@ class DevOrchestratorDeps:
     # Optional (default None -> No/Empty providers) so existing wiring keeps working.
     instructions: InstructionsProvider | None = None
     skills: SkillLibrary | None = None
+    # External MCP-server tools available to the agents (default None -> none).
+    mcp: MCPToolProvider | None = None

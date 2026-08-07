@@ -9,6 +9,11 @@ from workflows.dev_orchestrator.dev_llm import (
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.instructions import RepoInstructionsProvider
 from workflows.dev_orchestrator.llm import DevLLM, FakeDevLLM
+from workflows.dev_orchestrator.mcp_tools import (
+    MCPToolProvider,
+    MultiServerMCPToolProvider,
+    NoMCPToolProvider,
+)
 from workflows.dev_orchestrator.skills import DirectorySkillLibrary
 from workflows.llm.cache import configure_llm_cache
 from workflows.llm.compression import build_compressor
@@ -55,6 +60,13 @@ def build_copilot_llm(
     )
 
 
+def build_mcp_provider(config: DevOrchestratorConfig) -> MCPToolProvider:
+    """MCP client from config: connect to configured servers, else a no-op."""
+    if config.mcp_servers:
+        return MultiServerMCPToolProvider(config.mcp_servers)
+    return NoMCPToolProvider()
+
+
 def build_fake_deps(config: DevOrchestratorConfig | None = None) -> DevOrchestratorDeps:
     """All-Fake dependency set: runs the full graph with no git/PHP/LLM/Postgres."""
     return DevOrchestratorDeps(
@@ -86,4 +98,5 @@ def build_real_deps(
         config=config,
         instructions=RepoInstructionsProvider(),
         skills=DirectorySkillLibrary(),
+        mcp=build_mcp_provider(config),
     )

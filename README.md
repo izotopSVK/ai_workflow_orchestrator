@@ -73,6 +73,8 @@ Full setup (Copilot SSO auth, database, PHP toolchain) is in
   [docs/dev_orchestrator.md](docs/dev_orchestrator.md)
 - **AGENTS.md standard + skills** loaded from the target repo.
   [docs/agents_and_skills.md](docs/agents_and_skills.md)
+- **MCP client** — agents can use tools from external MCP servers
+  (filesystem, git, …). [docs/mcp.md](docs/mcp.md)
 - **Context compression** via Headroom (+ RTK) to cut tokens & align the prompt
   cache. [docs/headroom_integration.md](docs/headroom_integration.md)
 - **Secret/PII redaction** across logs, errors and tool output.
@@ -88,6 +90,7 @@ The full docs live in **[`docs/`](docs/README.md)**:
 | [Configuration](docs/configuration.md) | [Architecture](docs/architecture.md) |
 | [Dev orchestrator](docs/dev_orchestrator.md) | [Auth & security](docs/auth_and_security.md) |
 | [AGENTS.md & skills](docs/agents_and_skills.md) | [Headroom + RTK](docs/headroom_integration.md) |
+| [MCP client](docs/mcp.md) | [Logging security](docs/logging_security.md) |
 
 ## Tests
 

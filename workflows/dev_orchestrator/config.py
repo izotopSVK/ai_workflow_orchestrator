@@ -58,6 +58,12 @@ class DevOrchestratorConfig:
     # How many lessons/episodes to pull from memory into planning.
     retrieval_k: int = 5
 
+    # External MCP servers whose tools the agents may use. Maps server name ->
+    # langchain-mcp-adapters connection config, e.g.
+    # {"git": {"command": "uvx", "args": ["mcp-server-git"], "transport": "stdio"}}.
+    # Empty (default) means no MCP client. See docs/mcp.md.
+    mcp_servers: dict[str, dict] = field(default_factory=dict)
+
     # --- Enterprise LLM: GitHub Copilot (SSO-compatible) ----------------
     # All orchestration LLM calls route through Copilot's OpenAI-compatible API.
     llm_provider: str = "github_copilot"

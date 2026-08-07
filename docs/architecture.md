@@ -53,6 +53,7 @@ Every side effect is an interface with a Fake (tests) and a real impl (prod):
 | `PhpToolchain` | `FakePhpToolchain` | `SubprocessPhpToolchain` |
 | `MemoryStore` | `InMemoryMemoryStore` | `PgVectorMemoryStore` *(stub)* |
 | `InstructionsProvider` / `SkillLibrary` | `No*` / `Empty*` | `RepoInstructionsProvider` / `DirectorySkillLibrary` |
+| `MCPToolProvider` | `No*` / `FakeMCPToolProvider` | `MultiServerMCPToolProvider` |
 
 ## Cross-cutting
 
@@ -60,6 +61,7 @@ Every side effect is an interface with a Fake (tests) and a real impl (prod):
 - **Secret/PII redaction:** [logging_security.md](logging_security.md)
 - **Token compression (Headroom/RTK):** [headroom_integration.md](headroom_integration.md)
 - **AGENTS.md & skills:** [agents_and_skills.md](agents_and_skills.md)
+- **MCP client (external tools):** [mcp.md](mcp.md)
 
 ## Project layout
 
@@ -75,7 +77,7 @@ workflows/
   observability/          redaction (secrets/PII)
   dev_orchestrator/       self-learning pipeline:
     builder, state, deps, config, service, factory, schemas
-    dev_llm (Copilot transport), prompts, instructions, skills, text
+    dev_llm (Copilot transport), prompts, instructions, skills, text, mcp_tools
     nodes/                _helpers (advance, context_from_state), bootstrap,
                           load_context, retrieve, analyze, plan, implement,
                           verify, reflect, human_review, finalize, learn, teardown

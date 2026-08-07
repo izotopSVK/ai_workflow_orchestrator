@@ -35,6 +35,7 @@ class DevOrchestratorState(TypedDict):
     instructions: NotRequired[str]
     selected_skills: NotRequired[list[dict[str, Any]]]
     agent_instructions: NotRequired[str]
+    mcp_tools: NotRequired[list[dict[str, Any]]]     # external MCP tools discovered
 
     plan: NotRequired[list[dict[str, Any]]]          # from plan
     diff: NotRequired[str]                            # from implement

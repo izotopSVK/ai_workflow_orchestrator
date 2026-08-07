@@ -38,6 +38,10 @@ compression = [
 cache = [
     "langchain-community>=0.3.0",
 ]
+# MCP client: let agents use tools from external MCP servers (config.mcp_servers).
+mcp = [
+    "langchain-mcp-adapters",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
