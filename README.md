@@ -1,56 +1,88 @@
 # AI Workflow Orchestrator
 
-Python-native durable AI workflow system built on **LangGraph** (stateful graph execution + checkpointing), **LangChain** (LLM/tool abstractions), and **PostgreSQL** (application state + LangGraph checkpoints).
+Python-native, durable AI workflow system built on **LangGraph** (stateful graph
+execution + checkpointing), **LangChain** (LLM/tool abstractions), **GitHub
+Copilot** (enterprise LLM, SSO), and **PostgreSQL**.
 
-This repo implements the MVP slice: a workflow graph that plans, verifies, pauses for human approval, and finalizes — with durable resume via LangGraph's Postgres checkpointer.
+Guiding principle: **the LLM is one node inside the graph — never the workflow
+engine.** The graph is the engine, deterministic tools decide correctness, and
+every side effect is a `Protocol` with a Fake, so the whole system runs in tests
+with no external services.
 
-## Architecture (MVP)
+## Two systems in this repo
+
+- **MVP workflow API** — a generic durable workflow (`plan → verify →
+  human_review → finalize`) exposed over FastAPI, with durable resume via
+  LangGraph's Postgres checkpointer.
+- **Self-learning dev orchestrator** — a decoupled pipeline that develops changes
+  against a legacy **Yii 1.1** app targeting **PHP 8.4** with **SOLID**
+  enforcement. It creates an isolated git worktree, loads the repo's
+  `AGENTS.md`/skills, retrieves lessons from memory, plans and implements a diff,
+  verifies it deterministically (php -l · Rector · PHPStan · PHP-CS-Fixer ·
+  PHPUnit · SOLID), reflects and retries on failure, then distils lessons back
+  into memory.
 
 ```
 FastAPI ─▶ WorkflowService ─▶ LangGraph (plan → verify → human_review → finalize)
-                                   │
-                                   ├─▶ ChatOllama (local LLM, qwen3.6 by default)
+                                   ├─▶ GitHub Copilot (enterprise LLM, SSO)
                                    ├─▶ PostgresSaver (graph checkpoints)
-                                   └─▶ SQLAlchemy ORM (workflows, approvals, events, artifacts, ...)
-```
+                                   └─▶ SQLAlchemy ORM (workflows, approvals, events, artifacts)
 
-The LLM is one node inside the graph — never the workflow engine.
+dev orchestrator:
+START → bootstrap → load_context → retrieve → analyze → plan → implement → verify
+        (verify → reflect → implement  |  → human_review → finalize → learn → teardown)
+```
 
 ## Quickstart
 
-Prerequisites: Python 3.11+, Docker, [Ollama](https://ollama.com) running locally.
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[test]"
+pytest -q                       # 60 tests, no external services needed
+```
+
+Run the MVP API (needs Docker + Copilot, or `LLM_PROVIDER=fake`):
 
 ```bash
 docker compose up -d
-
 cp .env.example .env
-
-pip install -e ".[test]"
-
 alembic upgrade head
-
-ollama pull qwen3.6
-
 uvicorn app.main:app --reload
 ```
 
-## API
-
 ```bash
-# 1. start a workflow — runs plan → verify → human_review then pauses
 curl -X POST localhost:8000/workflows \
-  -H 'content-type: application/json' \
-  -d '{"goal": "Draft a status report"}'
-
-# 2. inspect status
-curl localhost:8000/workflows/<workflow_id>
-
-# 3. approve the pending human_review and resume to finalize
-curl -X POST localhost:8000/approvals/<approval_id>/approve
-
-# 4. confirm completion
-curl localhost:8000/workflows/<workflow_id>
+  -H 'content-type: application/json' -d '{"goal": "Draft a status report"}'
 ```
+
+Full setup (Copilot SSO auth, database, PHP toolchain) is in
+**[docs/installation.md](docs/installation.md)**.
+
+## Features
+
+- **Enterprise LLM via GitHub Copilot**, SSO-compatible (OAuth device flow →
+  short-lived Copilot token). [docs/auth_and_security.md](docs/auth_and_security.md)
+- **Per-agent models** — each agent (`analyze`/`plan`/`implement`/`review_solid`/
+  `reflect`) can run on its own model. [docs/configuration.md](docs/configuration.md)
+- **Self-learning** — Reflexion loop + episodic/lesson memory (RAG).
+  [docs/dev_orchestrator.md](docs/dev_orchestrator.md)
+- **AGENTS.md standard + skills** loaded from the target repo.
+  [docs/agents_and_skills.md](docs/agents_and_skills.md)
+- **Context compression** via Headroom (+ RTK) to cut tokens & align the prompt
+  cache. [docs/headroom_integration.md](docs/headroom_integration.md)
+- **Secret/PII redaction** across logs, errors and tool output.
+  [docs/logging_security.md](docs/logging_security.md)
+
+## Documentation
+
+The full docs live in **[`docs/`](docs/README.md)**:
+
+| | |
+|---|---|
+| [Installation & setup](docs/installation.md) | [Usage](docs/usage.md) |
+| [Configuration](docs/configuration.md) | [Architecture](docs/architecture.md) |
+| [Dev orchestrator](docs/dev_orchestrator.md) | [Auth & security](docs/auth_and_security.md) |
+| [AGENTS.md & skills](docs/agents_and_skills.md) | [Headroom + RTK](docs/headroom_integration.md) |
 
 ## Tests
 
@@ -58,27 +90,14 @@ curl localhost:8000/workflows/<workflow_id>
 pytest -q
 ```
 
-The smoke test uses `FakeListChatModel` and an in-memory checkpointer with SQLite, so no Ollama or Postgres is required for `pytest`.
+Fakes for every side effect (LLM, git, PHP, memory, tokens) and an in-memory
+SQLite checkpointer mean the suite needs no Copilot, PHP, git or Postgres.
 
-## Configuration
+## Status
 
-All settings via environment variables (see `.env.example`):
-
-| Var | Default | Purpose |
-|-----|---------|---------|
-| `DB_URL` | `postgresql+psycopg://...` | SQLAlchemy URL for app tables |
-| `CHECKPOINT_DB_URL` | same DB, libpq URL | LangGraph PostgresSaver |
-| `LLM_PROVIDER` | `ollama` | `ollama` or `fake` |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server |
-| `OLLAMA_MODEL` | `qwen3.6` | Ollama model tag |
-| `ARTIFACT_DIR` | `./artifacts` | Local artifact store path |
-
-## Out of Scope (this commit)
-
-- Idempotent tool executor + tool registry
-- Budget enforcement
-- Saga/compensation, outbox/inbox, distributed locks
-- Multi-agent planner/executor/verifier separation
-- Vector store / long-term memory
-- Object storage backends (S3/MinIO)
-- Background workers
+Implemented: MVP workflow API, self-learning dev-orchestrator scaffold, Copilot
+SSO auth, per-agent models, AGENTS.md/skills, Headroom compression + LLM cache,
+secret/PII redaction. Notable stubs to wire for production: `PgVectorMemoryStore`
+(embeddings-backed memory) and running against a concrete Yii 1.1 target repo.
+See [docs/dev_orchestrator.md](docs/dev_orchestrator.md) for the productionization
+checklist.

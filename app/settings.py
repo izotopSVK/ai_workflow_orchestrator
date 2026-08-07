@@ -7,9 +7,16 @@ class Settings(BaseSettings):
     db_url: str = "postgresql+psycopg://workflow:workflow@localhost:5432/ai_workflows"
     checkpoint_db_url: str = "postgresql://workflow:workflow@localhost:5432/ai_workflows"
 
-    llm_provider: str = "ollama"
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen3.6"
+    # Enterprise LLM: GitHub Copilot (SSO-compatible). The Copilot token is
+    # derived from a GitHub OAuth token (GH_COPILOT_OAUTH_TOKEN or device flow).
+    llm_provider: str = "github_copilot"
+    copilot_model: str = "chatgpt-5.6-terra"
+    copilot_base_url: str = "https://api.githubcopilot.com"
+
+    # Context compression (Headroom) + response cache for the planner LLM.
+    compressor: str = "none"  # none | headroom
+    headroom_proxy_url: str | None = None  # proxy mode; overrides copilot_base_url
+    llm_cache: str = "none"  # none | memory | sqlite
 
     artifact_dir: str = "./artifacts"
 
