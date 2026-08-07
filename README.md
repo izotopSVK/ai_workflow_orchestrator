@@ -34,6 +34,10 @@ Optional context compression via [Headroom](https://github.com/headroomlabs-ai/h
 (+ RTK) cuts Copilot token usage and aligns the prompt cache — see
 [`docs/headroom_integration.md`](docs/headroom_integration.md).
 
+The dev orchestrator honors the **`AGENTS.md` standard** (plus `CLAUDE.md`,
+Copilot/Cursor/Windsurf instructions) and repo **skills**, injected into every
+agent — see [`docs/agents_and_skills.md`](docs/agents_and_skills.md).
+
 ## Quickstart
 
 Prerequisites: Python 3.11+, Docker, and a **GitHub Copilot** subscription

@@ -14,7 +14,8 @@ PHPStan, PHPUnit) decide correctness; the LLM only proposes.
 ```mermaid
 flowchart TD
     START([start]) --> bootstrap
-    bootstrap[bootstrap<br/>git worktree + copy + symlink] --> retrieve
+    bootstrap[bootstrap<br/>git worktree + copy + symlink] --> load_context
+    load_context[load_context<br/>AGENTS.md + skills] --> retrieve
     retrieve[retrieve<br/>lessons from memory] --> analyze
     analyze[analyze<br/>target files + PHP84 risks] --> plan
     plan[plan<br/>RAG-informed steps] --> implement
@@ -37,6 +38,7 @@ flowchart TD
 | Node | Responsibility | Deterministic? |
 |------|----------------|----------------|
 | `bootstrap` | `git worktree add` a task branch, copy per-task config files, symlink heavy shared dirs (`vendor/`, `runtime/`, …) | yes (tool) |
+| `load_context` | Load AGENTS.md-style instructions + select relevant skills from the worktree ([details](agents_and_skills.md)) | yes (tool) |
 | `retrieve` | Pull relevant lessons/episodes from long-term memory (self-learning) | yes (tool) |
 | `analyze` | Map goal → target files + PHP 8.4 migration risks | LLM |
 | `plan` | Ordered migration + SOLID steps, RAG-informed | LLM |

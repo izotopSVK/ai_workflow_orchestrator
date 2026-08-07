@@ -9,6 +9,7 @@ from workflows.dev_orchestrator.nodes.finalize import make_finalize_node
 from workflows.dev_orchestrator.nodes.human_review import make_human_review_node
 from workflows.dev_orchestrator.nodes.implement import make_implement_node
 from workflows.dev_orchestrator.nodes.learn import make_learn_node
+from workflows.dev_orchestrator.nodes.load_context import make_load_context_node
 from workflows.dev_orchestrator.nodes.plan import make_plan_node
 from workflows.dev_orchestrator.nodes.reflect import make_reflect_node
 from workflows.dev_orchestrator.nodes.retrieve import make_retrieve_node
@@ -24,7 +25,7 @@ from workflows.dev_orchestrator.state import DevOrchestratorState
 def build_dev_orchestrator_graph(*, checkpointer, deps: DevOrchestratorDeps):
     """Wire the self-learning Yii 1.1 -> PHP 8.4 dev pipeline.
 
-    START -> bootstrap -> retrieve -> analyze -> plan -> implement -> verify
+    START -> bootstrap -> load_context -> retrieve -> analyze -> plan -> implement -> verify
       verify --ok--> human_review --approved--> finalize -> learn -> teardown -> END
       verify --red,budget-left--> reflect -> implement   (Reflexion retry loop)
       verify --red,exhausted--> finalize (failure)
@@ -33,6 +34,7 @@ def build_dev_orchestrator_graph(*, checkpointer, deps: DevOrchestratorDeps):
     builder = StateGraph(DevOrchestratorState)
 
     builder.add_node("bootstrap", make_bootstrap_node(deps))
+    builder.add_node("load_context", make_load_context_node(deps))
     builder.add_node("retrieve", make_retrieve_node(deps))
     builder.add_node("analyze", make_analyze_node(deps))
     builder.add_node("plan", make_plan_node(deps))
@@ -45,7 +47,8 @@ def build_dev_orchestrator_graph(*, checkpointer, deps: DevOrchestratorDeps):
     builder.add_node("teardown", make_teardown_node(deps))
 
     builder.add_edge(START, "bootstrap")
-    builder.add_edge("bootstrap", "retrieve")
+    builder.add_edge("bootstrap", "load_context")
+    builder.add_edge("load_context", "retrieve")
     builder.add_edge("retrieve", "analyze")
     builder.add_edge("analyze", "plan")
     builder.add_edge("plan", "implement")

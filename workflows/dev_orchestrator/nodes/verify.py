@@ -31,7 +31,10 @@ def make_verify_node(
         report["cs_fixer"] = deps.php.cs_fixer(ws_path, paths).model_dump()
         report["phpunit"] = deps.php.phpunit(ws_path, paths).model_dump()
 
-        solid = deps.llm.review_solid(diff=state.get("diff", ""))
+        solid = deps.llm.review_solid(
+            diff=state.get("diff", ""),
+            system_extra=state.get("agent_instructions", ""),
+        )
         report["solid"] = {"ok": solid.passed, "score": solid.score,
                            "violations": [v.model_dump() for v in solid.violations]}
 

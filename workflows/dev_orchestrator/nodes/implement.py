@@ -28,6 +28,7 @@ def make_implement_node(
             plan=plan,
             reflections=reflections,
             lessons=lessons,
+            system_extra=state.get("agent_instructions", ""),
         )
 
         completed = list(state.get("completed_steps", []))

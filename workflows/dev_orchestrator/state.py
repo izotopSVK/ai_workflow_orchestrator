@@ -15,6 +15,12 @@ class DevOrchestratorState(TypedDict):
     # {"path", "branch", "base_ref", "copied": [...], "symlinks": [...]}
     workspace: NotRequired[dict[str, Any]]
 
+    # Project instructions (AGENTS.md standard & friends) + skills loaded from
+    # the worktree, composed into the string every agent's prompt is extended with.
+    instructions: NotRequired[str]
+    selected_skills: NotRequired[list[dict[str, Any]]]
+    agent_instructions: NotRequired[str]
+
     # Self-learning: lessons/episodes pulled from memory before planning.
     retrieved_lessons: list[dict[str, Any]]
 

@@ -7,7 +7,9 @@ from workflows.dev_orchestrator.copilot import (
     TokenProvider,
 )
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+from workflows.dev_orchestrator.instructions import RepoInstructionsProvider
 from workflows.dev_orchestrator.llm import DevLLM, FakeDevLLM
+from workflows.dev_orchestrator.skills import DirectorySkillLibrary
 from workflows.llm.cache import configure_llm_cache
 from workflows.llm.compression import build_compressor
 from workflows.dev_orchestrator.tools.memory import InMemoryMemoryStore
@@ -82,4 +84,6 @@ def build_real_deps(
         php=SubprocessPhpToolchain(),
         memory=InMemoryMemoryStore(),
         config=config,
+        instructions=RepoInstructionsProvider(),
+        skills=DirectorySkillLibrary(),
     )

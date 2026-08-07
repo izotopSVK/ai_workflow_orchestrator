@@ -19,6 +19,7 @@ def make_analyze_node(
             goal=state["goal"],
             lessons=lessons,
             file_hints=state.get("target_files", []),
+            system_extra=state.get("agent_instructions", ""),
         )
 
         completed = list(state.get("completed_steps", []))

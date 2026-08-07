@@ -99,17 +99,22 @@ class GitHubCopilotLLM:
             self._factories[model] = factory
         return factory
 
-    def prepare_messages(self, human: str, role: str) -> list[tuple[str, str]]:
+    def _system(self, system_extra: str) -> str:
+        if not system_extra:
+            return _SYSTEM
+        return f"{_SYSTEM}\n\n# Project instructions & skills (from the target repo)\n{system_extra}"
+
+    def prepare_messages(self, human: str, role: str, system_extra: str = "") -> list[tuple[str, str]]:
         """Build and compress the messages for a role (seam for testing)."""
-        messages = [("system", _SYSTEM), ("human", human)]
+        messages = [("system", self._system(system_extra)), ("human", human)]
         return self._compressor.compress_messages(messages, model=self.model_for(role))
 
-    def _structured(self, schema, human: str, role: str):
-        messages = self.prepare_messages(human, role)
+    def _structured(self, schema, human: str, role: str, system_extra: str = ""):
+        messages = self.prepare_messages(human, role, system_extra)
         result = self._factory_for(role).chat().with_structured_output(schema).invoke(messages)
         return result if isinstance(result, schema) else schema.model_validate(result)
 
-    def analyze(self, *, goal, lessons, file_hints):
+    def analyze(self, *, goal, lessons, file_hints, system_extra=""):
         from workflows.dev_orchestrator.schemas import AnalysisOutput
 
         human = (
@@ -119,9 +124,9 @@ class GitHubCopilotLLM:
             "Identify the concrete target files to change and the PHP 8.4 / SOLID "
             "risks to watch for."
         )
-        return self._structured(AnalysisOutput, human, "analyze")
+        return self._structured(AnalysisOutput, human, "analyze", system_extra)
 
-    def plan(self, *, goal, analysis, lessons):
+    def plan(self, *, goal, analysis, lessons, system_extra=""):
         from workflows.dev_orchestrator.schemas import PlanOutput
 
         human = (
@@ -132,9 +137,9 @@ class GitHubCopilotLLM:
             "Produce an ordered plan of 3-6 steps to make the change PHP 8.4 "
             "compatible and SOLID-compliant."
         )
-        return self._structured(PlanOutput, human, "plan")
+        return self._structured(PlanOutput, human, "plan", system_extra)
 
-    def implement(self, *, goal, plan, reflections, lessons):
+    def implement(self, *, goal, plan, reflections, lessons, system_extra=""):
         from workflows.dev_orchestrator.schemas import ImplementOutput
 
         reflection_block = "\n".join(f"- {r}" for r in reflections) if reflections else "None."
@@ -146,9 +151,9 @@ class GitHubCopilotLLM:
             "Return a unified diff implementing the plan, the files it touches, "
             "and a one-line summary."
         )
-        return self._structured(ImplementOutput, human, "implement")
+        return self._structured(ImplementOutput, human, "implement", system_extra)
 
-    def review_solid(self, *, diff):
+    def review_solid(self, *, diff, system_extra=""):
         from workflows.dev_orchestrator.schemas import SolidReview
 
         human = (
@@ -156,9 +161,9 @@ class GitHubCopilotLLM:
             "(SRP, OCP, LSP, ISP, DIP). Report each violation with its principle "
             f"and file, and an overall score in [0,1].\n\nDiff:\n{diff}"
         )
-        return self._structured(SolidReview, human, "review_solid")
+        return self._structured(SolidReview, human, "review_solid", system_extra)
 
-    def reflect(self, *, goal, verify_report):
+    def reflect(self, *, goal, verify_report, system_extra=""):
         from workflows.dev_orchestrator.schemas import Lesson
 
         human = (
@@ -167,4 +172,4 @@ class GitHubCopilotLLM:
             "Write ONE concise, reusable lesson that would prevent this failure "
             "next time. Give it a short title, a detail, and tags."
         )
-        return self._structured(Lesson, human, "reflect")
+        return self._structured(Lesson, human, "reflect", system_extra)

@@ -16,7 +16,12 @@ def make_plan_node(
     def plan_node(state: DevOrchestratorState) -> dict[str, Any]:
         lessons = [Lesson(**le) for le in state.get("retrieved_lessons", [])]
         analysis = AnalysisOutput(target_files=state.get("target_files", []))
-        plan_output = deps.llm.plan(goal=state["goal"], analysis=analysis, lessons=lessons)
+        plan_output = deps.llm.plan(
+            goal=state["goal"],
+            analysis=analysis,
+            lessons=lessons,
+            system_extra=state.get("agent_instructions", ""),
+        )
 
         completed = list(state.get("completed_steps", []))
         completed.append("plan")

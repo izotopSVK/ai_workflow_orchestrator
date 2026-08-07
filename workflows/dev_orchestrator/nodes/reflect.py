@@ -19,7 +19,11 @@ def make_reflect_node(
     """
 
     def reflect_node(state: DevOrchestratorState) -> dict[str, Any]:
-        lesson = deps.llm.reflect(goal=state["goal"], verify_report=state.get("verify_report", {}))
+        lesson = deps.llm.reflect(
+            goal=state["goal"],
+            verify_report=state.get("verify_report", {}),
+            system_extra=state.get("agent_instructions", ""),
+        )
         lesson_id = deps.memory.record_lesson(lesson)
         lesson.id = lesson_id
 
