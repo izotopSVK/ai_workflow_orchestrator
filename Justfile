@@ -46,6 +46,12 @@ db-up:
 db-down:
     docker compose down
 
+# Wipe the database volume and recreate an empty Postgres (DESTROYS all data).
+# Use this to recover from a partially-applied migration.
+db-reset:
+    docker compose down -v
+    @just db-up
+
 # Apply database migrations.
 migrate:
     {{ venv }}/bin/alembic upgrade head

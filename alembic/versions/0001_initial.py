@@ -53,7 +53,6 @@ def upgrade() -> None:
         sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_workflow_steps_workflow_id", "workflow_steps", ["workflow_id"])
 
     op.create_table(
         "tool_calls",
@@ -72,7 +71,6 @@ def upgrade() -> None:
         sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_tool_calls_workflow_id", "tool_calls", ["workflow_id"])
 
     op.create_table(
         "workflow_events",
@@ -84,7 +82,6 @@ def upgrade() -> None:
         sa.Column("payload_json", JSONB(), nullable=False, server_default="{}"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_workflow_events_workflow_id", "workflow_events", ["workflow_id"])
 
     op.create_table(
         "workflow_artifacts",
@@ -98,7 +95,6 @@ def upgrade() -> None:
         sa.Column("metadata_json", JSONB(), nullable=False, server_default="{}"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_workflow_artifacts_workflow_id", "workflow_artifacts", ["workflow_id"])
 
     op.create_table(
         "human_approvals",
@@ -115,7 +111,6 @@ def upgrade() -> None:
         sa.Column("decided_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("ix_human_approvals_workflow_id", "human_approvals", ["workflow_id"])
 
 
 def downgrade() -> None:
