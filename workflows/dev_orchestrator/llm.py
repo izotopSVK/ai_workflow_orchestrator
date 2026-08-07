@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Protocol
 
+from workflows.dev_orchestrator.mcp_tools import MCPToolResult, MCPToolSpec
 from workflows.dev_orchestrator.schemas import (
     AnalysisOutput,
     ImplementOutput,
@@ -25,7 +27,15 @@ class DevLLM(Protocol):
 
     def plan(self, *, goal: str, analysis: AnalysisOutput, ctx: PromptContext) -> PlanOutput: ...
 
-    def implement(self, *, goal: str, plan: PlanOutput, ctx: PromptContext) -> ImplementOutput: ...
+    def implement(
+        self,
+        *,
+        goal: str,
+        plan: PlanOutput,
+        ctx: PromptContext,
+        tools: list[MCPToolSpec] | None = None,
+        execute: Callable[[str, dict], MCPToolResult] | None = None,
+    ) -> ImplementOutput: ...
 
     def review_solid(self, *, diff: str, ctx: PromptContext) -> SolidReview: ...
 
@@ -66,11 +76,16 @@ class FakeDevLLM:
         ]
         return PlanOutput(steps=steps, confidence=0.9)
 
-    def implement(self, *, goal, plan, ctx) -> ImplementOutput:
+    def implement(self, *, goal, plan, ctx, tools=None, execute=None) -> ImplementOutput:
         touched = [s.target_file for s in plan.steps if s.target_file] or ["protected/models/User.php"]
+        note = ""
+        # Simulate a tool-using agent: if MCP tools are offered, call the first one.
+        if tools and execute is not None:
+            res = execute(tools[0].name, {})
+            note = f" (used {tools[0].name}: {'ok' if res.ok else res.error})"
         return ImplementOutput(
             diff="--- a/file\n+++ b/file\n@@\n-legacy\n+modernized\n",
-            summary=f"Implemented {len(plan.steps)} steps for: {goal}",
+            summary=f"Implemented {len(plan.steps)} steps for: {goal}{note}",
             touched_files=list(dict.fromkeys(touched)),
         )
 

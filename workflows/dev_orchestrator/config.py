@@ -52,6 +52,10 @@ class DevOrchestratorConfig:
     # Reflexion loop bound: how many implement→verify cycles before giving up.
     max_iterations: int = 4
 
+    # Function-calling bound: max MCP tool-call rounds the implement agent may
+    # take within a single implement step.
+    max_tool_steps: int = 6
+
     # Whether a human must approve before finalize.
     require_human_review: bool = True
 

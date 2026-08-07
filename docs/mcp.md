@@ -37,8 +37,23 @@ Install the adapter: `pip install -e ".[mcp]"`.
     (checkpointed / auditable), and
   - appends an **"Available external tools (via MCP)"** section to
     `agent_instructions`, so every agent's system prompt knows the tools exist.
-- Any node can invoke a tool via `deps.mcp.call_tool(name, arguments)`, which
-  returns a uniform `MCPToolResult(name, ok, content, error)`.
+- The **`implement` agent uses a function-calling loop**: the MCP tools are bound
+  to the Copilot model; while the model emits tool calls they are executed via
+  `deps.mcp.call_tool` and the results fed back, until the model answers without a
+  tool call (bounded by `config.max_tool_steps`). The enriched conversation is
+  then coerced into the structured diff.
+- Any node can also invoke a tool directly via `deps.mcp.call_tool(name, args)`,
+  which returns a uniform `MCPToolResult(name, ok, content, error)`.
+
+## Function-calling loop
+
+`workflows/dev_orchestrator/tool_loop.py` holds `run_tool_loop(chat, messages,
+execute, max_steps)` — a transport-agnostic loop that takes any object with
+`invoke(messages) -> AIMessage` and an `execute(name, args)` callable, so it is
+unit-tested with a fake chat and no network (only `langchain_core` messages).
+`GitHubCopilotLLM.implement` binds the tools (`bind_tools`), runs the loop, then
+does one final structured-output call. When no MCP tools are configured it falls
+back to the plain single-shot structured call.
 
 ## Design / DI
 
@@ -56,11 +71,10 @@ runs the async MCP client internally. All SDK coupling is isolated in
 method. Wired via `factory.build_mcp_provider` into `build_real_deps`; unset in
 the fake deps (tests), where the node falls back to `NoMCPToolProvider`.
 
-## Current scope & next step
+## Scope
 
-This scaffold provides **discovery + invocation + agent awareness**. The agents
-do not yet *autonomously decide* to call MCP tools mid-generation — that needs a
-function-calling agent loop (Copilot supports tool calls, but the current graph
-uses fixed structured-output roles). Natural next step: a tool-calling variant of
-the `implement`/`analyze` nodes that lets the model choose MCP tools, executed via
-`deps.mcp.call_tool`. Tested in `tests/test_mcp.py` (8 tests).
+Discovery + agent awareness + an autonomous **function-calling loop** on the
+`implement` agent are implemented. The other roles (`analyze`, `plan`,
+`review_solid`, `reflect`) still use single-shot structured output; extending the
+loop to `analyze` is the same mechanism if useful. Tested in `tests/test_mcp.py`
+and `tests/test_tool_loop.py`.

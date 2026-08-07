@@ -12,7 +12,10 @@ so mixing models costs one login.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from workflows.dev_orchestrator import prompts
+from workflows.dev_orchestrator.mcp_tools import MCPToolResult, MCPToolSpec
 from workflows.dev_orchestrator.schemas import (
     AnalysisOutput,
     ImplementOutput,
@@ -21,6 +24,7 @@ from workflows.dev_orchestrator.schemas import (
     PromptContext,
     SolidReview,
 )
+from workflows.dev_orchestrator.tool_loop import mcp_specs_to_openai_tools, run_tool_loop
 from workflows.llm.compression import ContextCompressor, NoOpCompressor
 from workflows.llm.copilot import (  # re-exported for convenience
     CopilotAuthError,
@@ -57,6 +61,7 @@ class GitHubCopilotLLM:
         integration_id: str = "vscode-chat",
         temperature: float = 0.0,
         compressor: ContextCompressor | None = None,
+        max_tool_steps: int = 6,
     ):
         self._token_provider = token_provider
         self._default_model = model
@@ -66,6 +71,7 @@ class GitHubCopilotLLM:
         self._integration_id = integration_id
         self._temperature = temperature
         self._compressor = compressor or NoOpCompressor()
+        self._max_tool_steps = max_tool_steps
         self._factories: dict[str, CopilotChatFactory] = {}
 
     def model_for(self, role: str) -> str:
@@ -105,9 +111,33 @@ class GitHubCopilotLLM:
         human = prompts.plan_prompt(goal, analysis, ctx)
         return self._structured(PlanOutput, human, "plan", ctx.instructions)
 
-    def implement(self, *, goal: str, plan: PlanOutput, ctx: PromptContext) -> ImplementOutput:
+    def implement(
+        self,
+        *,
+        goal: str,
+        plan: PlanOutput,
+        ctx: PromptContext,
+        tools: list[MCPToolSpec] | None = None,
+        execute: Callable[[str, dict], MCPToolResult] | None = None,
+    ) -> ImplementOutput:
         human = prompts.implement_prompt(goal, plan, ctx)
-        return self._structured(ImplementOutput, human, "implement", ctx.instructions)
+
+        # No MCP tools available -> single structured call (as before).
+        if not tools or execute is None:
+            return self._structured(ImplementOutput, human, "implement", ctx.instructions)
+
+        # Function-calling loop: let the model call MCP tools, then coerce the
+        # enriched conversation into the structured diff.
+        base = self._factory_for("implement").chat()
+        bound = base.bind_tools(mcp_specs_to_openai_tools(tools))
+        messages = self.prepare_messages(human, "implement", ctx.instructions)
+        loop = run_tool_loop(bound, messages, execute, max_steps=self._max_tool_steps)
+        convo = loop.messages + [
+            ("human", "Using any tool results above, return the final unified diff, "
+                      "the files it touches, and a one-line summary."),
+        ]
+        result = base.with_structured_output(ImplementOutput).invoke(convo)
+        return result if isinstance(result, ImplementOutput) else ImplementOutput.model_validate(result)
 
     def review_solid(self, *, diff: str, ctx: PromptContext) -> SolidReview:
         human = prompts.review_solid_prompt(diff)
