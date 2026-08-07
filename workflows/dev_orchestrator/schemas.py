@@ -74,3 +74,16 @@ class ToolResult(BaseModel):
     ok: bool
     output: str = ""
     findings: list[str] = Field(default_factory=list)
+
+
+class PromptContext(BaseModel):
+    """Per-run context shared by every agent role.
+
+    Bundles the cross-cutting inputs (retrieved lessons, prior reflections,
+    project instructions/skills) so role methods take one ``ctx`` instead of a
+    growing list of parallel parameters.
+    """
+
+    lessons: list[Lesson] = Field(default_factory=list)
+    reflections: list[str] = Field(default_factory=list)
+    instructions: str = ""

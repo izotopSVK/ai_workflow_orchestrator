@@ -21,6 +21,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from workflows.dev_orchestrator.text import keyword_score as _score
+
 SKILL_DIRS = [".claude/skills", ".agents/skills", "skills"]
 
 
@@ -61,12 +63,6 @@ def _parse_frontmatter(text: str, *, fallback_name: str) -> tuple[str, str, str]
                 description = line
                 break
     return name, description, body
-
-
-def _score(query: str, text: str) -> int:
-    q = {w for w in query.lower().split() if len(w) > 2}
-    t = text.lower()
-    return sum(1 for w in q if w in t)
 
 
 class SkillLibrary(Protocol):

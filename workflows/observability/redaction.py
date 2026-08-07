@@ -15,29 +15,53 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass
 
-_PLACEHOLDER = "[REDACTED:{}]"
 
-# Ordered (label, pattern). Applied in sequence; earlier, more specific rules
-# win. Case-insensitive where relevant.
-_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+def _placeholder(label: str) -> str:
+    return f"[REDACTED:{label}]"
+
+
+@dataclass(frozen=True)
+class _Rule:
+    """One redaction rule: match ``pattern`` and rewrite it via ``replacement``.
+
+    ``replacement`` is anything ``re.sub`` accepts (a template string or a
+    function), so each rule owns how it rewrites — no per-label branching in the
+    redact loop. Add a credential type by appending a rule here.
+    """
+
+    label: str
+    pattern: re.Pattern[str]
+    replacement: object  # str template or Callable[[re.Match], str]
+
+
+def _keep_key(label: str):
+    # Keep the captured prefix (key + separator) for debuggability; the value is
+    # the uncaptured remainder, so it is dropped and replaced by the placeholder.
+    def repl(m: re.Match) -> str:
+        prefix = "".join(g for g in m.groups() if g)
+        return f"{prefix}{_placeholder(label)}"
+    return repl
+
+
+# Ordered; earlier, more specific rules win. Case-insensitive where relevant.
+_RULES: list[_Rule] = [
     # GitHub tokens (classic, fine-grained, and OAuth/app: gho_/ghu_/ghs_/ghp_/ghr_)
-    ("github_token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{16,}\b")),
-    ("github_pat", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
+    _Rule("github_token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{16,}\b"), _placeholder("github_token")),
+    _Rule("github_pat", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"), _placeholder("github_pat")),
     # OpenAI-style keys
-    ("openai_key", re.compile(r"\bsk-[A-Za-z0-9_\-]{16,}\b")),
+    _Rule("openai_key", re.compile(r"\bsk-[A-Za-z0-9_\-]{16,}\b"), _placeholder("openai_key")),
     # JWTs (three base64url segments)
-    ("jwt", re.compile(r"\beyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+")),
+    _Rule("jwt", re.compile(r"\beyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+"), _placeholder("jwt")),
     # GitHub Copilot session token blob (tid=...;exp=...;...)
-    ("copilot_token", re.compile(r"\btid=[^\s\"';]+(?:;[a-z0-9]+=[^\s\"';]+)+")),
-    # Authorization / token / bearer headers: keep the key, redact the value
-    (
-        "auth_header",
-        re.compile(r"(?i)\b(authorization|x-api-key)\b(\s*[:=]\s*)\S+"),
-    ),
-    ("bearer", re.compile(r"(?i)\b(bearer|token)\s+[A-Za-z0-9._\-]{8,}")),
+    _Rule("copilot_token", re.compile(r"\btid=[^\s\"';]+(?:;[a-z0-9]+=[^\s\"';]+)+"), _placeholder("copilot_token")),
+    # Authorization / X-API-Key headers: keep the key, redact the value
+    _Rule("auth_header", re.compile(r"(?i)\b(authorization|x-api-key)\b(\s*[:=]\s*)\S+"), _keep_key("auth_header")),
+    # bearer/token <value>: keep the prefix, redact the value
+    _Rule("bearer", re.compile(r"(?i)\b(bearer|token)(\s+)[A-Za-z0-9._\-]{8,}"), _keep_key("bearer")),
     # Emails (PII)
-    ("email", re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")),
+    _Rule("email", re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b"), _placeholder("email")),
 ]
 
 
@@ -46,15 +70,8 @@ def redact(text: str) -> str:
     if not text:
         return text
     result = text
-    for label, pattern in _PATTERNS:
-        if label in ("auth_header",):
-            result = pattern.sub(rf"\1\2{_PLACEHOLDER.format(label)}", result)
-        elif label == "bearer":
-            result = pattern.sub(
-                lambda m: f"{m.group(1)} {_PLACEHOLDER.format('bearer')}", result
-            )
-        else:
-            result = pattern.sub(_PLACEHOLDER.format(label), result)
+    for rule in _RULES:
+        result = rule.pattern.sub(rule.replacement, result)
     return result
 
 

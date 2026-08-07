@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+from workflows.dev_orchestrator.nodes._helpers import advance
 from workflows.dev_orchestrator.state import DevOrchestratorState
 from workflows.models.enums import WorkflowStatus
 
@@ -26,14 +27,11 @@ def make_bootstrap_node(
         deps.workspace.copy_files(workspace, cfg.copy_globs)
         deps.workspace.link_files(workspace, cfg.symlink_map)
 
-        completed = list(state.get("completed_steps", []))
-        completed.append("bootstrap")
-
-        return {
-            "workspace": workspace.as_dict(),
-            "current_node": "bootstrap",
-            "status": WorkflowStatus.RUNNING.value,
-            "completed_steps": completed,
-        }
+        return advance(
+            state,
+            "bootstrap",
+            workspace=workspace.as_dict(),
+            status=WorkflowStatus.RUNNING.value,
+        )
 
     return bootstrap_node

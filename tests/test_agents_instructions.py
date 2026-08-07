@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from workflows.dev_orchestrator.builder import build_dev_orchestrator_graph
 from workflows.dev_orchestrator.config import DevOrchestratorConfig
-from workflows.dev_orchestrator.copilot import GitHubCopilotLLM, StaticTokenProvider
+from workflows.dev_orchestrator.dev_llm import GitHubCopilotLLM, StaticTokenProvider
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.instructions import (
     NoInstructionsProvider,
@@ -126,7 +126,7 @@ def test_load_context_graceful_without_providers():
 
 def test_instructions_injected_into_system_prompt():
     llm = GitHubCopilotLLM(token_provider=StaticTokenProvider("t"))
-    messages = llm.prepare_messages("do it", "implement", system_extra="PROJECT RULE: X")
+    messages = llm.prepare_messages("do it", "implement", instructions="PROJECT RULE: X")
     system = messages[0][1]
     assert "PROJECT RULE: X" in system
     assert "senior PHP engineer" in system  # base system prompt still present

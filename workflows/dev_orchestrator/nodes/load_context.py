@@ -5,6 +5,7 @@ from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.instructions import NoInstructionsProvider
+from workflows.dev_orchestrator.nodes._helpers import advance
 from workflows.dev_orchestrator.skills import EmptySkillLibrary
 from workflows.dev_orchestrator.state import DevOrchestratorState
 
@@ -36,15 +37,12 @@ def make_load_context_node(
                 parts.append(f"## Skill: {skill.name}\n{skill.body}")
         agent_instructions = "\n\n".join(parts)
 
-        completed = list(state.get("completed_steps", []))
-        completed.append("load_context")
-
-        return {
-            "instructions": instructions,
-            "selected_skills": [{"name": s.name, "description": s.description} for s in selected],
-            "agent_instructions": agent_instructions,
-            "current_node": "load_context",
-            "completed_steps": completed,
-        }
+        return advance(
+            state,
+            "load_context",
+            instructions=instructions,
+            selected_skills=[{"name": s.name, "description": s.description} for s in selected],
+            agent_instructions=agent_instructions,
+        )
 
     return load_context_node

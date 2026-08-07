@@ -75,10 +75,10 @@ workflows/
   observability/          redaction (secrets/PII)
   dev_orchestrator/       self-learning pipeline:
     builder, state, deps, config, service, factory, schemas
-    copilot, instructions, skills
-    nodes/                bootstrap, load_context, retrieve, analyze, plan,
-                          implement, verify, reflect, human_review, finalize,
-                          learn, teardown
+    dev_llm (Copilot transport), prompts, instructions, skills, text
+    nodes/                _helpers (advance, context_from_state), bootstrap,
+                          load_context, retrieve, analyze, plan, implement,
+                          verify, reflect, human_review, finalize, learn, teardown
     tools/                workspace (git worktree), php_toolchain, memory
 alembic/                  DB migrations
 tests/                    pytest suite (Fakes; no external services)

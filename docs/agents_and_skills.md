@@ -59,10 +59,11 @@ bootstrap → load_context → retrieve → analyze → plan → implement → v
 ```
 
 Every agent role (`analyze`, `plan`, `implement`, `review_solid`, `reflect`)
-takes a `system_extra` argument; the nodes pass `state["agent_instructions"]`, and
-`GitHubCopilotLLM` appends it to the base system prompt under a
-`# Project instructions & skills` heading. The loaded instructions and selected
-skills are also stored in state, so they are checkpointed and visible for audit.
+receives a `PromptContext` (lessons + reflections + instructions); the nodes build
+it from `state["agent_instructions"]` and `GitHubCopilotLLM` appends the
+instructions to the base system prompt under a `# Project instructions & skills`
+heading. The loaded instructions and selected skills are also stored in state, so
+they are checkpointed and visible for audit.
 
 ## Configuration / DI
 

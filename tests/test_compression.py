@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from workflows.dev_orchestrator.config import DevOrchestratorConfig
-from workflows.dev_orchestrator.copilot import GitHubCopilotLLM, StaticTokenProvider
+from workflows.dev_orchestrator.dev_llm import GitHubCopilotLLM, StaticTokenProvider
 from workflows.dev_orchestrator.factory import build_copilot_llm
 from workflows.llm.cache import configure_llm_cache
 from workflows.llm.compression import (

@@ -8,6 +8,7 @@ from workflows.dev_orchestrator.schemas import (
     Lesson,
     PlanOutput,
     PlanStep,
+    PromptContext,
     SolidReview,
 )
 
@@ -16,31 +17,25 @@ class DevLLM(Protocol):
     """LLM roles used by the dev orchestrator.
 
     The LLM proposes; deterministic tools dispose. It never decides whether a
-    change is correct — that is the PHP toolchain's job.
+    change is correct — that is the PHP toolchain's job. Cross-cutting per-run
+    inputs (lessons, reflections, project instructions) come in via ``ctx``.
     """
 
-    def analyze(
-        self, *, goal: str, lessons: list[Lesson], file_hints: list[str], system_extra: str = ""
-    ) -> AnalysisOutput: ...
+    def analyze(self, *, goal: str, file_hints: list[str], ctx: PromptContext) -> AnalysisOutput: ...
 
-    def plan(
-        self, *, goal: str, analysis: AnalysisOutput, lessons: list[Lesson], system_extra: str = ""
-    ) -> PlanOutput: ...
+    def plan(self, *, goal: str, analysis: AnalysisOutput, ctx: PromptContext) -> PlanOutput: ...
 
-    def implement(
-        self, *, goal: str, plan: PlanOutput, reflections: list[str], lessons: list[Lesson],
-        system_extra: str = "",
-    ) -> ImplementOutput: ...
+    def implement(self, *, goal: str, plan: PlanOutput, ctx: PromptContext) -> ImplementOutput: ...
 
-    def review_solid(self, *, diff: str, system_extra: str = "") -> SolidReview: ...
+    def review_solid(self, *, diff: str, ctx: PromptContext) -> SolidReview: ...
 
-    def reflect(self, *, goal: str, verify_report: dict, system_extra: str = "") -> Lesson: ...
+    def reflect(self, *, goal: str, verify_report: dict, ctx: PromptContext) -> Lesson: ...
 
 
 class FakeDevLLM:
     """Deterministic DevLLM for tests and offline runs."""
 
-    def analyze(self, *, goal, lessons, file_hints, system_extra="") -> AnalysisOutput:
+    def analyze(self, *, goal, file_hints, ctx) -> AnalysisOutput:
         return AnalysisOutput(
             target_files=file_hints or ["protected/models/User.php"],
             risks=[
@@ -50,7 +45,7 @@ class FakeDevLLM:
             notes=f"Analyzed goal: {goal}",
         )
 
-    def plan(self, *, goal, analysis, lessons, system_extra="") -> PlanOutput:
+    def plan(self, *, goal, analysis, ctx) -> PlanOutput:
         steps = [
             PlanStep(
                 id="migrate_syntax",
@@ -71,7 +66,7 @@ class FakeDevLLM:
         ]
         return PlanOutput(steps=steps, confidence=0.9)
 
-    def implement(self, *, goal, plan, reflections, lessons, system_extra="") -> ImplementOutput:
+    def implement(self, *, goal, plan, ctx) -> ImplementOutput:
         touched = [s.target_file for s in plan.steps if s.target_file] or ["protected/models/User.php"]
         return ImplementOutput(
             diff="--- a/file\n+++ b/file\n@@\n-legacy\n+modernized\n",
@@ -79,10 +74,10 @@ class FakeDevLLM:
             touched_files=list(dict.fromkeys(touched)),
         )
 
-    def review_solid(self, *, diff, system_extra="") -> SolidReview:
+    def review_solid(self, *, diff, ctx) -> SolidReview:
         return SolidReview(score=1.0, violations=[])
 
-    def reflect(self, *, goal, verify_report, system_extra="") -> Lesson:
+    def reflect(self, *, goal, verify_report, ctx) -> Lesson:
         failing = [k for k, v in (verify_report or {}).items() if isinstance(v, dict) and not v.get("ok", True)]
         tag = failing[0] if failing else "general"
         return Lesson(
@@ -93,6 +88,6 @@ class FakeDevLLM:
 
 
 # The real, enterprise DevLLM implementation lives in
-# ``workflows.dev_orchestrator.copilot.GitHubCopilotLLM`` (GitHub Copilot,
-# SSO-compatible). It is imported there to keep langchain-openai optional for
-# the Fake path used in tests.
+# ``workflows.dev_orchestrator.dev_llm.GitHubCopilotLLM`` (GitHub Copilot,
+# SSO-compatible). It is defined there to keep langchain-openai optional for the
+# Fake path used in tests.

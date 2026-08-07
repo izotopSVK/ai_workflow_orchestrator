@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+from workflows.dev_orchestrator.nodes._helpers import advance
 from workflows.dev_orchestrator.state import DevOrchestratorState
 
 
@@ -19,13 +20,10 @@ def make_retrieve_node(
     def retrieve_node(state: DevOrchestratorState) -> dict[str, Any]:
         lessons = deps.memory.retrieve_lessons(state["goal"], deps.config.retrieval_k)
 
-        completed = list(state.get("completed_steps", []))
-        completed.append("retrieve")
-
-        return {
-            "retrieved_lessons": [le.model_dump() for le in lessons],
-            "current_node": "retrieve",
-            "completed_steps": completed,
-        }
+        return advance(
+            state,
+            "retrieve",
+            retrieved_lessons=[le.model_dump() for le in lessons],
+        )
 
     return retrieve_node

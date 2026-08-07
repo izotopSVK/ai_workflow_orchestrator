@@ -4,6 +4,7 @@ import uuid
 from typing import Protocol
 
 from workflows.dev_orchestrator.schemas import Episode, Lesson
+from workflows.dev_orchestrator.text import keyword_score as _score
 
 
 class MemoryStore(Protocol):
@@ -26,13 +27,6 @@ class MemoryStore(Protocol):
     def record_episode(self, episode: Episode) -> str: ...
 
     def retrieve_episodes(self, query: str, k: int) -> list[Episode]: ...
-
-
-def _score(query: str, text: str) -> int:
-    """Naive keyword overlap used by the in-memory store (no embeddings)."""
-    q = {w for w in query.lower().split() if len(w) > 2}
-    t = text.lower()
-    return sum(1 for w in q if w in t)
 
 
 class InMemoryMemoryStore:

@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from workflows.dev_orchestrator.config import DevOrchestratorConfig
-from workflows.dev_orchestrator.copilot import GitHubCopilotLLM
+from workflows.dev_orchestrator.dev_llm import GitHubCopilotLLM
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.factory import build_copilot_llm, build_real_deps
 from workflows.llm.copilot import (

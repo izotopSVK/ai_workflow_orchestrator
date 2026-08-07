@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state
 from workflows.dev_orchestrator.state import DevOrchestratorState
 from workflows.models.enums import WorkflowStatus
 
@@ -22,7 +23,7 @@ def make_reflect_node(
         lesson = deps.llm.reflect(
             goal=state["goal"],
             verify_report=state.get("verify_report", {}),
-            system_extra=state.get("agent_instructions", ""),
+            ctx=context_from_state(state),
         )
         lesson_id = deps.memory.record_lesson(lesson)
         lesson.id = lesson_id
@@ -30,14 +31,11 @@ def make_reflect_node(
         reflections = list(state.get("reflections", []))
         reflections.append(lesson.model_dump())
 
-        completed = list(state.get("completed_steps", []))
-        completed.append("reflect")
-
-        return {
-            "reflections": reflections,
-            "current_node": "reflect",
-            "completed_steps": completed,
-            "status": WorkflowStatus.RUNNING.value,
-        }
+        return advance(
+            state,
+            "reflect",
+            reflections=reflections,
+            status=WorkflowStatus.RUNNING.value,
+        )
 
     return reflect_node

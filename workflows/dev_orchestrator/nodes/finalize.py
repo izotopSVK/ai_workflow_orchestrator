@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+from workflows.dev_orchestrator.nodes._helpers import advance
 from workflows.dev_orchestrator.state import DevOrchestratorState
 from workflows.models.enums import WorkflowStatus
 from workflows.dev_orchestrator.tools.workspace import Workspace
@@ -31,19 +32,16 @@ def make_finalize_node(
                 workspace, f"[dev-orchestrator] {state['goal']}"
             )
 
-        completed = list(state.get("completed_steps", []))
-        completed.append("finalize")
-
-        return {
-            "current_node": "finalize",
-            "status": WorkflowStatus.COMPLETED.value if gates_ok else WorkflowStatus.FAILED.value,
-            "completed_steps": completed,
-            "final_result": {
+        return advance(
+            state,
+            "finalize",
+            status=WorkflowStatus.COMPLETED.value if gates_ok else WorkflowStatus.FAILED.value,
+            final_result={
                 "outcome": "completed" if gates_ok else "failed",
                 "commit": commit_sha,
                 "iterations": state.get("iteration", 0),
                 "verify_report": report,
             },
-        }
+        )
 
     return finalize_node

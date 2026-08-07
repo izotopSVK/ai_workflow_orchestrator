@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+from workflows.dev_orchestrator.nodes._helpers import advance
 from workflows.dev_orchestrator.state import DevOrchestratorState
 from workflows.dev_orchestrator.tools.workspace import Workspace
 
@@ -25,9 +26,6 @@ def make_teardown_node(
             except Exception:  # noqa: BLE001 - teardown is best-effort
                 pass
 
-        completed = list(state.get("completed_steps", []))
-        completed.append("teardown")
-
-        return {"current_node": "teardown", "completed_steps": completed}
+        return advance(state, "teardown")
 
     return teardown_node

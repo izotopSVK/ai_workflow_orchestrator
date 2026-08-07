@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+from workflows.dev_orchestrator.nodes._helpers import advance
 from workflows.dev_orchestrator.schemas import Episode
 from workflows.dev_orchestrator.state import DevOrchestratorState
 
@@ -37,9 +38,6 @@ def make_learn_node(
                 if lesson_id:
                     deps.memory.reinforce(lesson_id, reward=1.0)
 
-        completed = list(state.get("completed_steps", []))
-        completed.append("learn")
-
-        return {"current_node": "learn", "completed_steps": completed}
+        return advance(state, "learn")
 
     return learn_node

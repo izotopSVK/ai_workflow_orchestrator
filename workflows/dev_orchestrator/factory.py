@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from workflows.dev_orchestrator.config import DevOrchestratorConfig
-from workflows.dev_orchestrator.copilot import (
+from workflows.dev_orchestrator.dev_llm import (
     GitHubCopilotLLM,
     GitHubCopilotTokenProvider,
     TokenProvider,

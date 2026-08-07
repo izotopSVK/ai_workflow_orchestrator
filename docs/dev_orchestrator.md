@@ -153,7 +153,7 @@ config = DevOrchestratorConfig(
 ```
 
 Roles: `analyze`, `plan`, `implement`, `review_solid`, `reflect` (see
-`copilot.AGENT_ROLES`). From an env var, use
+`dev_llm.AGENT_ROLES`). From an env var, use
 `parse_agent_models(os.environ["COPILOT_AGENT_MODELS"])` with the format
 `implement=chatgpt-5.6-sol,review_solid=chatgpt-5.6-luna`. All agents share one
 `CopilotChatFactory` per distinct model and one SSO token provider, so mixing
