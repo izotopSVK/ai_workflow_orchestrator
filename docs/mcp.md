@@ -37,11 +37,12 @@ Install the adapter: `pip install -e ".[mcp]"`.
     (checkpointed / auditable), and
   - appends an **"Available external tools (via MCP)"** section to
     `agent_instructions`, so every agent's system prompt knows the tools exist.
-- The **`implement` agent uses a function-calling loop**: the MCP tools are bound
-  to the Copilot model; while the model emits tool calls they are executed via
-  `deps.mcp.call_tool` and the results fed back, until the model answers without a
-  tool call (bounded by `config.max_tool_steps`). The enriched conversation is
-  then coerced into the structured diff.
+- The **`analyze` and `implement` agents use a function-calling loop**: the MCP
+  tools are bound to the Copilot model; while the model emits tool calls they are
+  executed via `deps.mcp.call_tool` and the results fed back, until the model
+  answers without a tool call (bounded by `config.max_tool_steps`). The enriched
+  conversation is then coerced into the structured result. (analyze reads files /
+  git to decide target files & risks; implement reads while writing the diff.)
 - Any node can also invoke a tool directly via `deps.mcp.call_tool(name, args)`,
   which returns a uniform `MCPToolResult(name, ok, content, error)`.
 
@@ -51,9 +52,10 @@ Install the adapter: `pip install -e ".[mcp]"`.
 execute, max_steps)` — a transport-agnostic loop that takes any object with
 `invoke(messages) -> AIMessage` and an `execute(name, args)` callable, so it is
 unit-tested with a fake chat and no network (only `langchain_core` messages).
-`GitHubCopilotLLM.implement` binds the tools (`bind_tools`), runs the loop, then
-does one final structured-output call. When no MCP tools are configured it falls
-back to the plain single-shot structured call.
+It is driven by the shared `GitHubCopilotLLM._structured(..., tools=, execute=)`
+helper — binds the tools (`bind_tools`), runs the loop, then does one final
+structured-output call — so any role can opt in with one argument. When no MCP
+tools are configured it falls back to the plain single-shot structured call.
 
 ## Design / DI
 
@@ -74,7 +76,7 @@ the fake deps (tests), where the node falls back to `NoMCPToolProvider`.
 ## Scope
 
 Discovery + agent awareness + an autonomous **function-calling loop** on the
-`implement` agent are implemented. The other roles (`analyze`, `plan`,
-`review_solid`, `reflect`) still use single-shot structured output; extending the
-loop to `analyze` is the same mechanism if useful. Tested in `tests/test_mcp.py`
-and `tests/test_tool_loop.py`.
+`analyze` and `implement` agents are implemented. The remaining roles (`plan`,
+`review_solid`, `reflect`) still use single-shot structured output; enabling the
+loop for any of them is one argument to `_structured` plus passing tools from the
+node. Tested in `tests/test_mcp.py` and `tests/test_tool_loop.py`.

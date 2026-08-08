@@ -129,3 +129,28 @@ def test_implement_node_passes_tools_and_executes():
     assert mcp.calls == [("read_file", {})]
     assert out["diff"]  # a diff was produced
     assert "implement" in out["completed_steps"]
+
+
+def test_analyze_node_passes_tools_and_executes():
+    from workflows.dev_orchestrator.config import DevOrchestratorConfig
+    from workflows.dev_orchestrator.deps import DevOrchestratorDeps
+    from workflows.dev_orchestrator.llm import FakeDevLLM
+    from workflows.dev_orchestrator.nodes.analyze import make_analyze_node
+    from workflows.dev_orchestrator.tools.memory import InMemoryMemoryStore
+    from workflows.dev_orchestrator.tools.php_toolchain import FakePhpToolchain
+    from workflows.dev_orchestrator.tools.workspace import FakeWorkspaceManager
+
+    mcp = FakeMCPToolProvider([(MCPToolSpec(name="read_file"), lambda a: "contents")])
+    deps = DevOrchestratorDeps(
+        llm=FakeDevLLM(),
+        workspace=FakeWorkspaceManager(),
+        php=FakePhpToolchain(),
+        memory=InMemoryMemoryStore(),
+        config=DevOrchestratorConfig(),
+        mcp=mcp,
+    )
+    node = make_analyze_node(deps)
+    out = node({"goal": "migrate", "target_files": [], "retrieved_lessons": []})
+
+    assert mcp.calls == [("read_file", {})]
+    assert "analyze" in out["completed_steps"]

@@ -23,7 +23,15 @@ class DevLLM(Protocol):
     inputs (lessons, reflections, project instructions) come in via ``ctx``.
     """
 
-    def analyze(self, *, goal: str, file_hints: list[str], ctx: PromptContext) -> AnalysisOutput: ...
+    def analyze(
+        self,
+        *,
+        goal: str,
+        file_hints: list[str],
+        ctx: PromptContext,
+        tools: list[MCPToolSpec] | None = None,
+        execute: Callable[[str, dict], MCPToolResult] | None = None,
+    ) -> AnalysisOutput: ...
 
     def plan(self, *, goal: str, analysis: AnalysisOutput, ctx: PromptContext) -> PlanOutput: ...
 
@@ -45,14 +53,18 @@ class DevLLM(Protocol):
 class FakeDevLLM:
     """Deterministic DevLLM for tests and offline runs."""
 
-    def analyze(self, *, goal, file_hints, ctx) -> AnalysisOutput:
+    def analyze(self, *, goal, file_hints, ctx, tools=None, execute=None) -> AnalysisOutput:
+        note = ""
+        if tools and execute is not None:
+            res = execute(tools[0].name, {})
+            note = f" (used {tools[0].name}: {'ok' if res.ok else res.error})"
         return AnalysisOutput(
             target_files=file_hints or ["protected/models/User.php"],
             risks=[
                 "PHP 8.4: dynamic properties deprecated on CComponent subclasses",
                 "PHP 8.4: each() removed",
             ],
-            notes=f"Analyzed goal: {goal}",
+            notes=f"Analyzed goal: {goal}{note}",
         )
 
     def plan(self, *, goal, analysis, ctx) -> PlanOutput:

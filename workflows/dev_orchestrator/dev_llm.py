@@ -98,14 +98,50 @@ class GitHubCopilotLLM:
         messages = [("system", prompts.system_prompt(instructions)), ("human", human)]
         return self._compressor.compress_messages(messages, model=self.model_for(role))
 
-    def _structured(self, schema, human: str, role: str, instructions: str = ""):
+    def _structured(
+        self,
+        schema,
+        human: str,
+        role: str,
+        instructions: str = "",
+        *,
+        tools: list[MCPToolSpec] | None = None,
+        execute: Callable[[str, dict], MCPToolResult] | None = None,
+        final_instruction: str = "Using any tool results above, produce the final answer.",
+    ):
+        """Structured call for a role, optionally via an MCP function-calling loop.
+
+        With ``tools``/``execute`` the role's model is bound with the tools and
+        driven through :func:`run_tool_loop`; the enriched conversation is then
+        coerced into ``schema``. Without them it is a single structured call.
+        """
         messages = self.prepare_messages(human, role, instructions)
-        result = self._factory_for(role).chat().with_structured_output(schema).invoke(messages)
+        base = self._factory_for(role).chat()
+
+        if tools and execute is not None:
+            bound = base.bind_tools(mcp_specs_to_openai_tools(tools))
+            loop = run_tool_loop(bound, messages, execute, max_steps=self._max_tool_steps)
+            messages = loop.messages + [("human", final_instruction)]
+
+        result = base.with_structured_output(schema).invoke(messages)
         return result if isinstance(result, schema) else schema.model_validate(result)
 
-    def analyze(self, *, goal: str, file_hints: list[str], ctx: PromptContext) -> AnalysisOutput:
+    def analyze(
+        self,
+        *,
+        goal: str,
+        file_hints: list[str],
+        ctx: PromptContext,
+        tools: list[MCPToolSpec] | None = None,
+        execute: Callable[[str, dict], MCPToolResult] | None = None,
+    ) -> AnalysisOutput:
         human = prompts.analyze_prompt(goal, file_hints, ctx)
-        return self._structured(AnalysisOutput, human, "analyze", ctx.instructions)
+        return self._structured(
+            AnalysisOutput, human, "analyze", ctx.instructions,
+            tools=tools, execute=execute,
+            final_instruction="Using any tool results above, return the concrete target "
+                              "files to change and the PHP 8.4 / SOLID risks.",
+        )
 
     def plan(self, *, goal: str, analysis: AnalysisOutput, ctx: PromptContext) -> PlanOutput:
         human = prompts.plan_prompt(goal, analysis, ctx)
@@ -121,23 +157,12 @@ class GitHubCopilotLLM:
         execute: Callable[[str, dict], MCPToolResult] | None = None,
     ) -> ImplementOutput:
         human = prompts.implement_prompt(goal, plan, ctx)
-
-        # No MCP tools available -> single structured call (as before).
-        if not tools or execute is None:
-            return self._structured(ImplementOutput, human, "implement", ctx.instructions)
-
-        # Function-calling loop: let the model call MCP tools, then coerce the
-        # enriched conversation into the structured diff.
-        base = self._factory_for("implement").chat()
-        bound = base.bind_tools(mcp_specs_to_openai_tools(tools))
-        messages = self.prepare_messages(human, "implement", ctx.instructions)
-        loop = run_tool_loop(bound, messages, execute, max_steps=self._max_tool_steps)
-        convo = loop.messages + [
-            ("human", "Using any tool results above, return the final unified diff, "
-                      "the files it touches, and a one-line summary."),
-        ]
-        result = base.with_structured_output(ImplementOutput).invoke(convo)
-        return result if isinstance(result, ImplementOutput) else ImplementOutput.model_validate(result)
+        return self._structured(
+            ImplementOutput, human, "implement", ctx.instructions,
+            tools=tools, execute=execute,
+            final_instruction="Using any tool results above, return the final unified diff, "
+                              "the files it touches, and a one-line summary.",
+        )
 
     def review_solid(self, *, diff: str, ctx: PromptContext) -> SolidReview:
         human = prompts.review_solid_prompt(diff)
