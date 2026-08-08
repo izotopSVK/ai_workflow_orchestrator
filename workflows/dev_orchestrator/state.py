@@ -39,5 +39,6 @@ class DevOrchestratorState(TypedDict):
 
     plan: NotRequired[list[dict[str, Any]]]          # from plan
     diff: NotRequired[str]                            # from implement
+    applied: NotRequired[bool]                        # from apply
     verify_report: NotRequired[dict[str, Any]]        # from verify
     final_result: NotRequired[dict[str, Any]]         # from finalize

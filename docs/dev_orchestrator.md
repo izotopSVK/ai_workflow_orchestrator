@@ -19,7 +19,9 @@ flowchart TD
     retrieve[retrieve<br/>lessons from memory] --> analyze
     analyze[analyze<br/>target files + PHP84 risks] --> plan
     plan[plan<br/>RAG-informed steps] --> implement
-    implement[implement<br/>produce diff] --> verify
+    implement[implement<br/>produce diff] --> apply
+    apply[apply<br/>git apply diff to worktree] --> verify
+    apply -- patch failed --> reflect
     verify{verify<br/>php -l · Rector · PHPStan · CS-Fixer · PHPUnit · SOLID}
     verify -- green --> human_review
     verify -- red, budget left --> reflect
@@ -43,6 +45,7 @@ flowchart TD
 | `analyze` | Map goal → target files + PHP 8.4 migration risks | LLM |
 | `plan` | Ordered migration + SOLID steps, RAG-informed | LLM |
 | `implement` | Emit the change as a unified diff; bumps the loop counter | LLM |
+| `apply` | `git apply` the diff into the worktree (failed patch → reflect/retry) | yes (tool) |
 | `verify` | Run the quality gates, aggregate a report | yes (tools) |
 | `reflect` | Turn a failed gate into a persisted lesson, prime the retry (Reflexion) | LLM + tool |
 | `human_review` | Pause for approval of the verified diff | — |

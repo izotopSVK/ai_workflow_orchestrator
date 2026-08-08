@@ -45,6 +45,8 @@ class WorkspaceManager(Protocol):
 
     def link_files(self, workspace: Workspace, symlink_map: dict[str, str]) -> list[str]: ...
 
+    def apply_patch(self, workspace: Workspace, diff: str) -> tuple[bool, str]: ...
+
     def commit(self, workspace: Workspace, message: str) -> str: ...
 
     def remove_worktree(self, workspace: Workspace) -> None: ...
@@ -111,6 +113,20 @@ class GitWorktreeManager:
         workspace.symlinks = links
         return links
 
+    def apply_patch(self, workspace: Workspace, diff: str) -> tuple[bool, str]:
+        if not diff or not diff.strip():
+            return True, "empty diff"
+        wt = Path(workspace.path)
+        patch = wt / ".dev-orchestrator.patch"
+        patch.write_text(diff, encoding="utf-8")
+        try:
+            self._git("apply", "--whitespace=nowarn", str(patch), cwd=wt)
+            return True, ""
+        except subprocess.CalledProcessError as exc:
+            return False, (exc.stderr or exc.stdout or str(exc))
+        finally:
+            patch.unlink(missing_ok=True)
+
     def commit(self, workspace: Workspace, message: str) -> str:
         wt = Path(workspace.path)
         self._git("add", "-A", cwd=wt)
@@ -134,6 +150,8 @@ class FakeWorkspaceManager:
         self.root = Path(root or tempfile.mkdtemp(prefix="fake-worktrees-"))
         self.commits: list[tuple[str, str]] = []
         self.removed: list[str] = []
+        self.applied: list[str] = []
+        self.apply_ok: bool = True  # flip to simulate a failed `git apply`
 
     def create_worktree(self, *, base_ref: str, branch: str) -> Workspace:
         dest = self.root / f"{branch.replace('/', '_')}-{uuid.uuid4().hex[:6]}"
@@ -148,6 +166,10 @@ class FakeWorkspaceManager:
     def link_files(self, workspace: Workspace, symlink_map: dict[str, str]) -> list[str]:
         workspace.symlinks = list(symlink_map.keys())
         return workspace.symlinks
+
+    def apply_patch(self, workspace: Workspace, diff: str) -> tuple[bool, str]:
+        self.applied.append(diff)
+        return (self.apply_ok, "" if self.apply_ok else "fake apply failure")
 
     def commit(self, workspace: Workspace, message: str) -> str:
         sha = uuid.uuid4().hex[:12]

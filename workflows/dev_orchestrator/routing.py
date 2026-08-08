@@ -9,6 +9,15 @@ def _gates_ok(state: DevOrchestratorState) -> bool:
     return bool(report) and all(r.get("ok", False) for r in report.values())
 
 
+def route_after_apply(state: DevOrchestratorState) -> str:
+    """Applied cleanly -> verify; failed patch -> reflect & retry (or give up)."""
+    if state.get("applied", False):
+        return "verify"
+    if state.get("iteration", 0) < state.get("max_iterations", 0):
+        return "reflect"
+    return "finalize"
+
+
 def route_after_verify(state: DevOrchestratorState) -> str:
     """Green -> human review; red -> reflect & retry until the loop is exhausted."""
     if _gates_ok(state):
