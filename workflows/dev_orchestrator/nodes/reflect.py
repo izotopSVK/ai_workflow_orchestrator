@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
-from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state
+from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state, record_llm_call
 from workflows.dev_orchestrator.state import DevOrchestratorState
 from workflows.models.enums import WorkflowStatus
 
@@ -36,6 +36,7 @@ def make_reflect_node(
             "reflect",
             reflections=reflections,
             status=WorkflowStatus.RUNNING.value,
+            budget_used=record_llm_call(state),
         )
 
     return reflect_node

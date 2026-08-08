@@ -5,7 +5,7 @@ from typing import Any
 
 from workflows.dev_orchestrator.config import DevOrchestratorConfig
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
-from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state
+from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state, record_llm_call
 from workflows.dev_orchestrator.schemas import ToolResult
 from workflows.dev_orchestrator.state import DevOrchestratorState
 from workflows.models.enums import WorkflowStatus
@@ -51,6 +51,11 @@ def make_verify_node(
 
         gates_ok = all(r.get("ok", False) for r in report.values())
         status = WorkflowStatus.RUNNING.value if gates_ok else WorkflowStatus.FAILED.value
-        return advance(state, "verify", verify_report=report, status=status)
+        return advance(
+            state, "verify",
+            verify_report=report,
+            status=status,
+            budget_used=record_llm_call(state),  # review_solid is an LLM call
+        )
 
     return verify_node

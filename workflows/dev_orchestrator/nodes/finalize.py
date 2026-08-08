@@ -5,6 +5,7 @@ from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.nodes._helpers import advance
+from workflows.dev_orchestrator.routing import over_budget
 from workflows.dev_orchestrator.state import DevOrchestratorState
 from workflows.models.enums import WorkflowStatus
 from workflows.dev_orchestrator.tools.workspace import Workspace
@@ -40,6 +41,8 @@ def make_finalize_node(
                 "outcome": "completed" if gates_ok else "failed",
                 "commit": commit_sha,
                 "iterations": state.get("iteration", 0),
+                "budget_used": state.get("budget_used", {}),
+                "budget_exceeded": (not gates_ok) and over_budget(state),
                 "verify_report": report,
             },
         )

@@ -19,6 +19,13 @@ def advance(state: DevOrchestratorState, node: str, **updates: Any) -> dict[str,
     return {"current_node": node, "completed_steps": completed, **updates}
 
 
+def record_llm_call(state: DevOrchestratorState, n: int = 1) -> dict[str, Any]:
+    """Return budget_used with the LLM-call counter incremented by ``n``."""
+    used = dict(state.get("budget_used", {}))
+    used["llm_calls"] = used.get("llm_calls", 0) + n
+    return used
+
+
 def context_from_state(state: DevOrchestratorState) -> PromptContext:
     """Assemble the per-run PromptContext (lessons + reflections + instructions)."""
     return PromptContext(

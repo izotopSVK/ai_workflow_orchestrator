@@ -5,7 +5,7 @@ from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.mcp_tools import NoMCPToolProvider
-from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state
+from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state, record_llm_call
 from workflows.dev_orchestrator.state import DevOrchestratorState
 
 
@@ -28,6 +28,10 @@ def make_analyze_node(
             tools=tools or None,
             execute=mcp.call_tool if tools else None,
         )
-        return advance(state, "analyze", target_files=analysis.target_files)
+        return advance(
+            state, "analyze",
+            target_files=analysis.target_files,
+            budget_used=record_llm_call(state),
+        )
 
     return analyze_node

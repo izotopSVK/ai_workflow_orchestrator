@@ -21,6 +21,11 @@ class DevOrchestratorState(TypedDict):
     reflections: list[dict[str, Any]]
     completed_steps: list[str]
     errors: list[dict[str, Any]]
+    # Budget guards + usage (0 limit = unlimited).
+    max_llm_calls: int
+    max_runtime_seconds: int
+    started_at: float
+    budget_used: dict[str, Any]
     pending_approval_id: NotRequired[str | None]  # init'd to None, cleared/set later
 
     # --- Produced by nodes (present once that node has run) --------------

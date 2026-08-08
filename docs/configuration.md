@@ -32,6 +32,9 @@ Constructed programmatically (a dataclass in
 | `rector_sets` | `PHP_84`, `CODE_QUALITY`, `DEAD_CODE` | Rector rule sets |
 | `phpstan_level` | `"5"` | PHPStan level |
 | `max_iterations` | `4` | Reflexion retry bound |
+| `max_tool_steps` | `6` | max MCP tool-call rounds per implement step |
+| `max_llm_calls` | `50` | budget: hard cap on total LLM calls per run (0 = unlimited) |
+| `max_runtime_seconds` | `1800` | budget: wall-clock cap per run (0 = unlimited) |
 | `require_human_review` | `True` | pause for approval before finalize |
 | `retrieval_k` | `5` | lessons/skills pulled into a run |
 | `copilot_model` | `chatgpt-5.6-terra` | default agent model |

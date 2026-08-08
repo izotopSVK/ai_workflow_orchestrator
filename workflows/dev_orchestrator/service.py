@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import uuid
 from typing import Any
 
@@ -37,6 +38,10 @@ class DevOrchestratorService:
             "completed_steps": [],
             "errors": [],
             "pending_approval_id": None,
+            "max_llm_calls": self.config.max_llm_calls,
+            "max_runtime_seconds": self.config.max_runtime_seconds,
+            "started_at": time.time(),
+            "budget_used": {"llm_calls": 0},
         }
         return self.graph.invoke(initial_state, config=self._config(workflow_id))
 

@@ -56,6 +56,11 @@ class DevOrchestratorConfig:
     # take within a single implement step.
     max_tool_steps: int = 6
 
+    # Budget guards (0 = unlimited). Stop wasteful retries before they run away:
+    # a hard cap on total LLM calls per run and on wall-clock runtime.
+    max_llm_calls: int = 50
+    max_runtime_seconds: int = 1800
+
     # Whether a human must approve before finalize.
     require_human_review: bool = True
 

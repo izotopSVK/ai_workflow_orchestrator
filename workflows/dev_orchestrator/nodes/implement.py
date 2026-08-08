@@ -5,7 +5,7 @@ from typing import Any
 
 from workflows.dev_orchestrator.deps import DevOrchestratorDeps
 from workflows.dev_orchestrator.mcp_tools import NoMCPToolProvider
-from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state
+from workflows.dev_orchestrator.nodes._helpers import advance, context_from_state, record_llm_call
 from workflows.dev_orchestrator.schemas import PlanOutput, PlanStep
 from workflows.dev_orchestrator.state import DevOrchestratorState
 
@@ -38,6 +38,7 @@ def make_implement_node(
             diff=result.diff,
             target_files=result.touched_files or state.get("target_files", []),
             iteration=state.get("iteration", 0) + 1,
+            budget_used=record_llm_call(state),
         )
 
     return implement_node
