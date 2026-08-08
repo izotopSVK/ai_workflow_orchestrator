@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text, Uuid
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -108,6 +108,38 @@ class WorkflowArtifact(Base):
     size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
     metadata_json: Mapped[dict] = mapped_column(JSONColumn, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class WorkflowLesson(Base):
+    """Distilled, reusable lesson for the self-learning memory (semantic tier)."""
+
+    __tablename__ = "workflow_lessons"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    detail: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    tags_json: Mapped[list] = mapped_column(JSONColumn, default=list)
+    reward: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # Embedding stored as a JSON array of floats (portable across SQLite/Postgres).
+    # For scale, swap to a pgvector column + <-> index (see PgVectorMemoryStore).
+    embedding_json: Mapped[list | None] = mapped_column(JSONColumn, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class WorkflowEpisode(Base):
+    """A full run trajectory for the self-learning memory (episodic tier)."""
+
+    __tablename__ = "workflow_episodes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    workflow_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    goal: Mapped[str] = mapped_column(Text, nullable=False)
+    outcome: Mapped[str] = mapped_column(String(50), nullable=False)
+    iterations: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    target_files_json: Mapped[list] = mapped_column(JSONColumn, default=list)
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    embedding_json: Mapped[list | None] = mapped_column(JSONColumn, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 

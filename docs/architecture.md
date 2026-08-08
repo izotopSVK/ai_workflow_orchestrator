@@ -51,7 +51,8 @@ Every side effect is an interface with a Fake (tests) and a real impl (prod):
 | `ContextCompressor` | `NoOpCompressor` | `HeadroomCompressor` |
 | `WorkspaceManager` | `FakeWorkspaceManager` | `GitWorktreeManager` |
 | `PhpToolchain` | `FakePhpToolchain` | `SubprocessPhpToolchain` |
-| `MemoryStore` | `InMemoryMemoryStore` | `PgVectorMemoryStore` *(stub)* |
+| `MemoryStore` | `InMemoryMemoryStore` | `SqlAlchemyMemoryStore` (persistent, embeddings) / `PgVectorMemoryStore` (scale) |
+| `EmbeddingProvider` | `FakeEmbeddingProvider` | `OpenAIEmbeddingProvider` |
 | `InstructionsProvider` / `SkillLibrary` | `No*` / `Empty*` | `RepoInstructionsProvider` / `DirectorySkillLibrary` |
 | `MCPToolProvider` | `No*` / `FakeMCPToolProvider` | `MultiServerMCPToolProvider` |
 

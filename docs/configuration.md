@@ -37,6 +37,9 @@ Constructed programmatically (a dataclass in
 | `max_runtime_seconds` | `1800` | budget: wall-clock cap per run (0 = unlimited) |
 | `require_human_review` | `True` | pause for approval before finalize |
 | `retrieval_k` | `5` | lessons/skills pulled into a run |
+| `memory_backend` | `in_memory` | `in_memory` (ephemeral) or `sql` (persistent, embeddings) |
+| `embedding_model` | `text-embedding-3-small` | embeddings model for the `sql` memory backend |
+| `embedding_base_url` | `None` | OpenAI-compatible embeddings endpoint (OpenAI/Azure/local) |
 | `copilot_model` | `chatgpt-5.6-terra` | default agent model |
 | `agent_models` | `{}` | per-agent model overrides (see below) |
 | `compressor` | `"none"` | `none` / `headroom` |

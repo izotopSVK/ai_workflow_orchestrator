@@ -192,7 +192,9 @@ To productionize:
 1. Set `DevOrchestratorConfig.target_repo_path` to the legacy Yii 1.1 checkout.
 2. Provision Copilot auth: set `GH_COPILOT_OAUTH_TOKEN` or run the device flow
    once (see above). Optionally point `copilot_oauth_client_id` at the org's app.
-3. Implement `PgVectorMemoryStore` (embedding column + `<->` retrieval).
+3. Persistent memory: set `memory_backend="sql"` + an embeddings endpoint
+   (`SqlAlchemyMemoryStore`, survives restarts). For scale, add a pgvector column
+   and use `PgVectorMemoryStore` (`<->` retrieval).
 4. Wire real Rector/PHPStan/PHPUnit config into the target repo's `vendor/bin`.
 5. Persist workspaces/approvals via the existing `workflows.persistence` repos.
 6. Add budget enforcement (reuse `Budget`/`BudgetUsed` from `workflows.models`).

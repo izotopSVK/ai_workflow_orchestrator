@@ -73,6 +73,12 @@ class DevOrchestratorConfig:
     # Empty (default) means no MCP client. See docs/mcp.md.
     mcp_servers: dict[str, dict] = field(default_factory=dict)
 
+    # Long-term memory backend: "in_memory" (default, ephemeral) or "sql"
+    # (persistent, embedding-based via SqlAlchemyMemoryStore). See docs.
+    memory_backend: str = "in_memory"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_base_url: str | None = None
+
     # --- Enterprise LLM: GitHub Copilot (SSO-compatible) ----------------
     # All orchestration LLM calls route through Copilot's OpenAI-compatible API.
     llm_provider: str = "github_copilot"

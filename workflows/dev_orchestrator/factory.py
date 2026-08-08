@@ -14,10 +14,15 @@ from workflows.dev_orchestrator.mcp_tools import (
     MultiServerMCPToolProvider,
     NoMCPToolProvider,
 )
+from workflows.dev_orchestrator.embeddings import EmbeddingProvider, OpenAIEmbeddingProvider
 from workflows.dev_orchestrator.skills import DirectorySkillLibrary
 from workflows.llm.cache import configure_llm_cache
 from workflows.llm.compression import build_compressor
-from workflows.dev_orchestrator.tools.memory import InMemoryMemoryStore
+from workflows.dev_orchestrator.tools.memory import (
+    InMemoryMemoryStore,
+    MemoryStore,
+    SqlAlchemyMemoryStore,
+)
 from workflows.dev_orchestrator.tools.php_toolchain import (
     FakePhpToolchain,
     SubprocessPhpToolchain,
@@ -68,6 +73,30 @@ def build_mcp_provider(config: DevOrchestratorConfig) -> MCPToolProvider:
     return NoMCPToolProvider()
 
 
+def build_embedder(config: DevOrchestratorConfig) -> EmbeddingProvider:
+    """Embedding provider for the persistent memory (OpenAI-compatible)."""
+    return OpenAIEmbeddingProvider(
+        model=config.embedding_model, base_url=config.embedding_base_url
+    )
+
+
+def build_memory(
+    config: DevOrchestratorConfig, *, session_factory=None, embedder: EmbeddingProvider | None = None
+) -> MemoryStore:
+    """Persistent (sql) or ephemeral (in_memory) memory from config.
+
+    'sql' requires a ``session_factory`` and uses embedding-based retrieval that
+    survives restarts; otherwise the in-process store is used. ``embedder`` can be
+    injected (tests); by default a real OpenAI-compatible embedder is built.
+    """
+    if config.memory_backend == "sql" and session_factory is not None:
+        return SqlAlchemyMemoryStore(
+            session_factory=session_factory,
+            embedder=embedder or build_embedder(config),
+        )
+    return InMemoryMemoryStore()
+
+
 def build_fake_deps(config: DevOrchestratorConfig | None = None) -> DevOrchestratorDeps:
     """All-Fake dependency set: runs the full graph with no git/PHP/LLM/Postgres."""
     return DevOrchestratorDeps(
@@ -83,11 +112,13 @@ def build_real_deps(
     config: DevOrchestratorConfig,
     *,
     token_provider: TokenProvider | None = None,
+    session_factory=None,
 ) -> DevOrchestratorDeps:
     """Production dependency set: GitHub Copilot LLM + git worktree + PHP tools.
 
-    Requires ``config.target_repo_path``. Memory still uses the in-memory store
-    until pgvector + embeddings are wired up (see :class:`PgVectorMemoryStore`).
+    Requires ``config.target_repo_path``. With ``config.memory_backend == "sql"``
+    and a ``session_factory``, long-term memory persists across restarts via
+    embeddings; otherwise the in-memory store is used.
     """
     if not config.target_repo_path:
         raise ValueError("config.target_repo_path must point at the legacy Yii 1.1 repo")
@@ -95,7 +126,7 @@ def build_real_deps(
         llm=build_copilot_llm(config, token_provider=token_provider),
         workspace=GitWorktreeManager(repo_path=config.target_repo_path),
         php=SubprocessPhpToolchain(),
-        memory=InMemoryMemoryStore(),
+        memory=build_memory(config, session_factory=session_factory),
         config=config,
         instructions=RepoInstructionsProvider(),
         skills=DirectorySkillLibrary(),

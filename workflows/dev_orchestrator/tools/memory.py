@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Protocol
 
+from workflows.dev_orchestrator.embeddings import cosine_similarity
 from workflows.dev_orchestrator.schemas import Episode, Lesson
 from workflows.dev_orchestrator.text import keyword_score as _score
 
@@ -71,35 +72,110 @@ class InMemoryMemoryStore:
         return [ep for ep in ranked if _score(query, f"{ep.goal} {ep.summary}") > 0][:k]
 
 
-class PgVectorMemoryStore:
-    """Persistent memory backed by Postgres + pgvector.
+class SqlAlchemyMemoryStore:
+    """Persistent memory backed by the app DB via SQLAlchemy + embeddings.
 
-    Placeholder for the real deployment: store lessons/episodes as rows with an
-    ``embedding vector`` column and retrieve via ``<->`` cosine distance. Left
-    unimplemented in the scaffold so tests stay Postgres-free.
+    Survives restarts and gives an audit trail (lessons + episodes tables).
+    Embeddings are stored as JSON arrays and ranked with cosine similarity in
+    Python, so this works on both SQLite (tests) and Postgres. For large lesson
+    sets, subclass into :class:`PgVectorMemoryStore` to push the ranking into the
+    DB with a native ``vector`` column + ``<->`` index.
     """
 
     def __init__(self, *, session_factory, embedder) -> None:
         self._session_factory = session_factory
         self._embedder = embedder
 
-    def _todo(self):  # pragma: no cover
-        raise NotImplementedError(
-            "PgVectorMemoryStore requires pgvector + an embedding model; "
-            "wire it in once the target Yii repo and embeddings are configured."
+    # -- lessons ----------------------------------------------------------
+
+    def record_lesson(self, lesson: Lesson) -> str:
+        from workflows.persistence.orm import WorkflowLesson
+
+        row_id = uuid.UUID(lesson.id) if lesson.id else uuid.uuid4()
+        with self._session_factory() as session:
+            session.add(WorkflowLesson(
+                id=row_id,
+                title=lesson.title,
+                detail=lesson.detail,
+                tags_json=list(lesson.tags),
+                reward=lesson.reward,
+                embedding_json=self._embedder.embed(f"{lesson.title} {lesson.detail}"),
+            ))
+            session.commit()
+        return str(row_id)
+
+    def reinforce(self, lesson_id: str, reward: float) -> None:
+        from workflows.persistence.orm import WorkflowLesson
+
+        with self._session_factory() as session:
+            row = session.get(WorkflowLesson, uuid.UUID(lesson_id))
+            if row is not None:
+                row.reward += reward
+                session.commit()
+
+    def retrieve_lessons(self, query: str, k: int) -> list[Lesson]:
+        from workflows.persistence.orm import WorkflowLesson
+
+        q_emb = self._embedder.embed(query)
+        with self._session_factory() as session:
+            rows = list(session.query(WorkflowLesson).all())
+        ranked = sorted(
+            rows,
+            key=lambda r: (cosine_similarity(q_emb, r.embedding_json or []), r.reward),
+            reverse=True,
         )
+        return [
+            Lesson(id=str(r.id), title=r.title, detail=r.detail, tags=list(r.tags_json or []),
+                   reward=r.reward)
+            for r in ranked
+            if cosine_similarity(q_emb, r.embedding_json or []) > 0
+        ][:k]
 
-    def retrieve_lessons(self, query: str, k: int):  # pragma: no cover
-        self._todo()
+    # -- episodes ---------------------------------------------------------
 
-    def record_lesson(self, lesson: Lesson) -> str:  # pragma: no cover
-        self._todo()
+    def record_episode(self, episode: Episode) -> str:
+        from workflows.persistence.orm import WorkflowEpisode
 
-    def reinforce(self, lesson_id: str, reward: float) -> None:  # pragma: no cover
-        self._todo()
+        with self._session_factory() as session:
+            session.add(WorkflowEpisode(
+                workflow_id=episode.workflow_id,
+                goal=episode.goal,
+                outcome=episode.outcome,
+                iterations=episode.iterations,
+                target_files_json=list(episode.target_files),
+                summary=episode.summary,
+                embedding_json=self._embedder.embed(f"{episode.goal} {episode.summary}"),
+            ))
+            session.commit()
+        return episode.workflow_id
 
-    def record_episode(self, episode: Episode) -> str:  # pragma: no cover
-        self._todo()
+    def retrieve_episodes(self, query: str, k: int) -> list[Episode]:
+        from workflows.persistence.orm import WorkflowEpisode
 
-    def retrieve_episodes(self, query: str, k: int):  # pragma: no cover
-        self._todo()
+        q_emb = self._embedder.embed(query)
+        with self._session_factory() as session:
+            rows = list(session.query(WorkflowEpisode).all())
+        ranked = sorted(
+            rows,
+            key=lambda r: cosine_similarity(q_emb, r.embedding_json or []),
+            reverse=True,
+        )
+        return [
+            Episode(workflow_id=r.workflow_id, goal=r.goal, outcome=r.outcome,
+                    iterations=r.iterations, target_files=list(r.target_files_json or []),
+                    summary=r.summary)
+            for r in ranked
+            if cosine_similarity(q_emb, r.embedding_json or []) > 0
+        ][:k]
+
+
+class PgVectorMemoryStore(SqlAlchemyMemoryStore):
+    """Scale variant: rank in Postgres via a native pgvector ``<->`` index.
+
+    Inherits all writes from :class:`SqlAlchemyMemoryStore`; a production
+    deployment overrides ``retrieve_*`` to run ``ORDER BY embedding <-> :q`` on a
+    ``vector`` column (requires the pgvector extension and a vector-typed column,
+    added by a Postgres-only migration). Until that column exists it behaves like
+    the portable parent. Verify against a real Postgres (integration test) before
+    relying on the native path.
+    """
